@@ -1,3 +1,4 @@
+#pragma once
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -104,65 +105,73 @@ void print_prompt();
 void shell_loop();
 // Read the line in stdin
 char* read_line();
-//Carga el historial del archivo
+// Load the history file to the list
 void load_history();
-//Salva el historial hacia el archivo
+// Save the list history to file
 void save_history();
-//Revisa si existe algun proceso zombi y lo reporta.
+// Check if exist a zombie process to report its.
 void verify_zombies();
-//Parsea el comando entrado por consola
+// Parse the command line
 struct job* parse_command(char* line);
+// Parse a segment of the command line
 struct process* parse_command_segment(char* segment);
-//Devuelve el tipo de comando.
+// Return command type
 int get_command_type(char* command);
-//Ejecuta los comandos.
+// Execute the jobs
 int launch_job(struct job* job);
-//Ejecuta un proceso
+// Execute a process
 int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd, int mode);
-//Ejecuta los comando builtin
+// Execute a builtin command
 int execute_builtin_command(struct job* job, struct process* proc, int in_fd, int out_fd, int mode);
-//Quita los espacios al inicio y al final del comando.
+// Quit whitespace at the begining and the end of the command line
 list* helper_strtrim(char* line);
-//Devuelve el id del job que contiene al proceso con PID pid
+// Return the id of the job with a process with this pid
 int get_job_id_by_pid(int pid);
-//Devuelve el job segun un ID
+// Return a job with id.
 struct job* get_job_by_id(int id);
-//Devuelve el id del proximo job NULL
+// Search the next null job and return it
 int get_next_job_id();
-//Imprime los procesos de un job
+// Print process jobs
 int print_processes_of_job(int id);
-//Imprime el estado de un job.
+// Print status job
 int print_job_status(int id);
-//Vacía un job
+// Clean a job
 int release_job(int id);
-//Insertar un job
+// Insert job
 int insert_job(struct job* job);
-//Remover un job
+// Delete a job
 int remove_job(int id);
-//Devuelve 1 si el job se completo
+// Return 1 if job was finish
 int is_job_completed(int id);
-//Set el estado de un proceso.
+// Set status to a process
 int set_process_status(int pid, int status);
-//Set el estado a todos los procesos  de un job
+// Set status to all the process in the job
 int set_job_status(int id, int status);
-//Esperar por el proceso con PID pid
+// Wait for a process
 int wait_for_pid(int pid);
-//Esperar por job
+// Wait for a job
 int wait_for_job(int id);
-//Devuelve la cantidad de procesos de un job que cumplen cierta condicion.
+// Return a count of a process that satisfied a condition filter.
 int get_proc_count(int id, int filter);
 
-
+// Kill a process in foreground
 void SIG_TRY_KILL_PROC(int signal);
 #pragma endregion PROTOTYPES
 
 #pragma region BUILTIN.
+// Close the shell
 void shell_exit();
+// Change the direction 
 int shell_cd(int argc, char** argv );
+// Print a history
 int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, int mode);
+// Execute again
 int shell_again(int argc, char** argv);
+// Execute jobs
 int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int mode);
+// Execute fg
 int shell_fg(int argc, char** argv);
+// Execute help
 void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, int mode);
 #pragma endregion BUILTIN
 
