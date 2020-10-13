@@ -1,2 +1,0 @@
-     13     110     626
-Hello Im Writing to the end of a file
