@@ -98,11 +98,11 @@ void update_dir_info();
 // Return the direction of the user
 char* get_user_dir();
 
-//Imprime el Prompt del SHELL
+// Print prompt
 void print_prompt();
-//Ejecuta el proceso del SHELL
+// Execute the loop of the shell
 void shell_loop();
-//Lee la linea de comando del SHELL
+// Read the line in stdin
 char* read_line();
 //Carga el historial del archivo
 void load_history();

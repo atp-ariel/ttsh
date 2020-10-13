@@ -55,3 +55,7 @@ En el shell con el comando `fg <index>` se puede traer un proceso de background 
 Carlos Toledo Silva C-211
 
 Ariel Alfonso Triana Pérez C-211
+
+## Para contribuir
+
+Abra un terminal, y haga `git clone "https://github.com/ArielTriana/ttsh"` en el directorio. Realice su contribución en una nueva rama `git branch <new-branch>`. Y luego `merge` en la rama `main`.
