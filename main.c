@@ -79,9 +79,11 @@ void shell_loop(){
         verify_zombies();
 
         print_prompt();
+        
         line = read_line();
         if(strlen(line) == 0)
             continue;
+        
         job = parse_command(line);
 
         if(job->save){
