@@ -1,6 +1,6 @@
 # ttsh (Triana & Toledo Shell)
 
-##Funcionalidades:
+## Funcionalidades:
 * **basic:** funcionalidades básicas (3 puntos)
 * **multi-pipe:** múltiples tuberías (1 punto)
 * **background:** procesos ejecutándose en segundo plano (0.5 puntos)
@@ -53,4 +53,5 @@ En el shell con el comando `fg <index>` se puede traer un proceso de background 
 
 ## Integrantes
 Carlos Toledo Silva C-211
+
 Ariel Alfonso Triana Pérez C-211
