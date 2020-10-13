@@ -51,3 +51,6 @@ En el shell con el comando `jobs` se puede obtener todos los comandos que se est
 
 En el shell con el comando `fg <index>` se puede traer un proceso de background hacia el foreground. Si no recibe ningún `<index>` el comando fg trae a foreground el último proceso que se envió a background. 
 
+## Integrantes
+Carlos Toledo Silva C-211
+Ariel Alfonso Triana Pérez C-211
