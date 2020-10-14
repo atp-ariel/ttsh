@@ -39,6 +39,7 @@ void SIG_TRY_KILL_PROC(int signal){
     if(signal == SIGINT){
         int index = -1;
         int pid = getpid();
+        printf("%d", pid);
         struct process* proc;
         for(int i = 0; i < NR_JOBS; i++)
             if(shell->jobs[i] != NULL)
@@ -46,12 +47,13 @@ void SIG_TRY_KILL_PROC(int signal){
                     if(proc->pid == pid)
                         index = i;
         struct job* job = shell->jobs[index];
+
         if(job ==  NULL){
             return;
         }
-        if(job->count_kill == 0)
+        else if(job->count_kill == 0)
         {
-            kill(pid, SIGINT);
+            kill(pid, SIGKILL);
             job->count_kill++;
             printf("%i\n", job->count_kill);
         }
