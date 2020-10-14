@@ -1,5 +1,6 @@
 #include "main.h"
 #include <errno.h>
+#include <dirent.h>
 
 int main(int argc, char** argv){
     shell_init();
@@ -1022,22 +1023,65 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
             close(out_fd);
         }
         
+        FILE* f = (FILE*)malloc(sizeof(FILE));
+        char* buff = (char*)malloc(sizeof(char));
+
         if(proc->argc == 1)
-            printf("%s\n%s\n%s\n%s\n%s", WELCOME, DEVELOPERS, FUNCTIONS,BUILTINS,TOTAL_POINTS);
+            f = fopen("./help/help.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "exit"))
-            printf("%s\n", EXIT_HELP);
+            f = fopen("./help/exit.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "history"))
-            printf("%s\n", HISTORY_HELP);
+            f = fopen("./help/history.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "again"))
-            printf("%s\n", AGAIN_HELP);
+            f = fopen("./help/again.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "cd"))
-            printf("%s\n", CD_HELP);
+            f = fopen("./help/cd.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "jobs"))
-            printf("%s\n", JOBS_HELP);
+            f = fopen("./help/jobs.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "fg"))
-            printf("%s\n", FG_HELP);
+            f = fopen("./help/fg.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "--all"))
-            printf("%s\n%s\n%s\n%s\n%s\n\nCOMANDOS:\n%s\n\n%s\n\n%s\n\n%s\n\n%s\n\n%s\n", WELCOME, DEVELOPERS, FUNCTIONS,BUILTINS,TOTAL_POINTS, EXIT_HELP, HISTORY_HELP, AGAIN_HELP, CD_HELP, JOBS_HELP, FG_HELP);
+        {
+            printf("HASD");
+            remove("./help/all.ttsh.help");
+            DIR * d;
+            struct dirent *dir;
+            d = opendir("./help");
+            list* dir_file = init();
+            if(d){
+                while((dir = readdir(d)) != NULL){
+                    append(dir_file, dir->d_name);
+                }
+                closedir(d);
+            }
+            f = fopen("./help/all.ttsh.help", "w+");
+            
+            FILE* f_aux = (FILE*)malloc(sizeof(FILE));
+            char* buff_aux = (char*)malloc(sizeof(char));
+            char* filename = (char*)malloc(sizeof(char) * dir_file->size);
+            int i = 0;
+            printf("%d", dir_file->size);
+            while(i < dir_file->size){
+                f_aux = fopen(get(dir_file, i)->data, "r");
+                while (read(f_aux->_fileno,buff_aux,1) > 0){
+                    printf("%c", *buff_aux);
+                    fwrite(*buff_aux, 1, 1, f);
+                    //fwrite(f,"%c", *buff_aux);
+                }
+                fclose(f_aux);
+                i++;
+            }
+
+        }
+        else
+        {
+            fprintf(stderr, "'%s' it's not a ttsh command\n", proc->argv[1]);
+            exit(EXIT_FAILURE);
+        }
+        
+        while (read(f->_fileno,buff,1) > 0){
+            printf("%c", *buff);
+        }
         exit(EXIT_SUCCESS);
     }
     else{

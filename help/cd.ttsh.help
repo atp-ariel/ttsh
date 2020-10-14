@@ -1,0 +1,5 @@
+cd <dir>: 
+
+    Cambia el directorio del shell hacia <dir>
+    Si <dir> = .. entonces cambia hacia el padre del directorio actual
+    Si no recibe <dir> entonces cambia hacia /home/[User]

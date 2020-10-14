@@ -1,0 +1,25 @@
+Ayuda de 'ttsh' 
+
+Equipo:
+    Carlos Toledo Silva C-211
+    Ariel Alfonso Triana Pérez C-211
+
+Funcionalidades:
+    basic: funcionalidades básicas (3 puntos)
+    multi-pipe: múltiples tuberías (1 punto)
+    background: procesos ejecutándose en segundo plano (0.5 puntos)
+    spaces: comandos con cualquier cantidad de espacios (0.5 puntos)
+    history: historial de comandos (0.5 puntos)
+    ctrl+c: envia la señal SIGINT al proceso que se ejecuta (0.5 puntos)
+    help: descripción de las funcionalidades del shell (1 punto)
+
+Build-in:
+    cd: cambia de direcciones
+    exit: termina el shell
+    history: muestra el historial
+    fg: devuelve al foreground un proceso del background
+    again: ejecuta un comando del historial
+    help: muestra la ayuda
+    jobs: muestra todos los jobs en cola
+
+Para ver la descripción de todos estos built-in ejecute el comando help --all o para ver uno en específico help <commando>

@@ -1,0 +1,3 @@
+again <index>:
+
+    Ejecuta el comando que está en el índice <index> del historial de comandos.
