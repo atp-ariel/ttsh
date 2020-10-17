@@ -42,11 +42,7 @@ void SIG_TRY_KILL_PROC(int signal){
         int pid = getpid();
         printf("%d", pid);
         struct process* proc;
-        for(int i = 0; i < NR_JOBS; i++)
-            if(shell->jobs[i] != NULL)
-                for(proc = shell->jobs[i]->root; proc != NULL; proc = proc->next)
-                    if(proc->pid == pid)
-                        index = i;
+        index = get_job_id_by_pid(pid);
         struct job* job = shell->jobs[index];
 
         if(job ==  NULL){
