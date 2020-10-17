@@ -381,14 +381,13 @@ int execute_builtin_command(struct job* job, struct process* proc, int in_fd, in
 
 #pragma region BUILT IN
 int shell_cd(int argc, char** argv){
+    char* dir = get_user_dir();
     if(argc == 1){
-        char* dir = get_user_dir();
         chdir(dir);
         update_dir_info();
         return 1;
     }
     if(!strncmp(argv[1], "~", 1)){
-        char* dir = get_user_dir();
         chdir(dir);
         update_dir_info();
         argv[1]++;
