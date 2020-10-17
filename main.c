@@ -394,7 +394,11 @@ int shell_cd(int argc, char** argv){
         argv[1]++;
         if(!strncmp(argv[1],"\0",1) || argv[1] == NULL)
             return 1;
+        if(strncmp(argv[0], "/", 1))
+            argv[1]++;
     }
+    if(!strlen(argv[1]))
+        return 1;
     if(!chdir(argv[1])){
         update_dir_info();
         return 1;
