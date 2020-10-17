@@ -1041,38 +1041,7 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
         else if(!strcmp(proc->argv[1], "fg"))
             f = fopen("./help/fg.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "--all"))
-        {
-            printf("HASD");
-            remove("./help/all.ttsh.help");
-            DIR * d;
-            struct dirent *dir;
-            d = opendir("./help");
-            list* dir_file = init();
-            if(d){
-                while((dir = readdir(d)) != NULL){
-                    append(dir_file, dir->d_name);
-                }
-                closedir(d);
-            }
-            f = fopen("./help/all.ttsh.help", "w+");
-            
-            FILE* f_aux = (FILE*)malloc(sizeof(FILE));
-            char* buff_aux = (char*)malloc(sizeof(char));
-            char* filename = (char*)malloc(sizeof(char) * dir_file->size);
-            int i = 0;
-            printf("%d", dir_file->size);
-            while(i < dir_file->size){
-                f_aux = fopen(get(dir_file, i)->data, "r");
-                while (read(f_aux->_fileno,buff_aux,1) > 0){
-                    printf("%c", *buff_aux);
-                    fwrite(*buff_aux, 1, 1, f);
-                    //fwrite(f,"%c", *buff_aux);
-                }
-                fclose(f_aux);
-                i++;
-            }
-
-        }
+            f = fopen("./help/all.ttsh.help", "r");
         else
         {
             fprintf(stderr, "'%s' it's not a ttsh command\n", proc->argv[1]);
