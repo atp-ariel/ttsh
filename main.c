@@ -664,6 +664,7 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
         while (read(f->_fileno,buff,1) > 0){
             printf("%c", *buff);
         }
+        fclose(f);
         exit(EXIT_SUCCESS);
     }
     else{
