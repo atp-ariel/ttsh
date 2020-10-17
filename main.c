@@ -233,94 +233,7 @@ struct job* parse_command(char* line){
 }
 #pragma endregion PARSER & TOKENIZER
 
-int get_job_id_by_pid(int pid){
-    struct process* proc;
-    for(int i = 0; i < NR_JOBS; i++){
-        if(shell->jobs[i] != NULL){
-            for(proc = shell->jobs[i]->root; proc != NULL; proc = proc->next)
-                if(proc->pid == pid)
-                    return i;
-        }
-    }
-    return -1;
-}
-
-void update_dir_info(){
-    getcwd(shell->cur_dir, sizeof(shell->cur_dir));
-}
-
-void print_prompt(){
-    update_dir_info();
-    printf( COLOR_BLUE BOLD_TEXT "%s" COLOR_NONE, shell->cur_dir);
-    printf( PROMPT);
-}
-
-
-
-
-int get_command_type(char* command){
-    if(command == NULL)
-        return COMMAND_EXTERN;
-    if(!strcmp(command, "exit"))
-        return COMMAND_EXIT;
-    else if(!strcmp(command, "history"))
-        return COMMAND_HISTORY;
-    else if(!strcmp(command, "again"))
-        return COMMAND_AGAIN;
-    else if(!strcmp(command, "cd"))
-        return COMMAND_CD;
-    else if(!strcmp(command, "jobs"))
-        return COMMAND_JOBS;
-    else if(!strcmp(command, "fg"))
-        return COMMAND_FG;
-    else if(!strcmp(command, "help"))
-        return COMMAND_HELP;
-    else return COMMAND_EXTERN;
-}
-char* read_line()
-{
-    int bufSize = RL_BUFSIZE;
-    int position = 0;
-    char* buf = calloc(1, bufSize * sizeof(char));
-    int c;
-    int count_quotation = 0;
-    if(!buf){
-        fprintf(stderr,COLOR_BLUE "ERROR\t" COLOR_NONE "Allocation error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    while(1){
-        c = getchar();
-        if(c == '\"')
-            count_quotation++;
-        if( c == '#' && count_quotation % 2 == 0){
-            buf[position] = '\0';
-            while(1)
-            {
-                c = getchar();
-                if(c == EOF || c == '\n' )
-                   return buf;
-            }
-        }
-        if(c == EOF || c == '\n' ){
-            buf[position] = '\0';
-            return buf;
-        }
-        else
-            buf[position] = c;
-        position++;
-
-        if(position >= bufSize){
-            bufSize += RL_BUFSIZE;
-            buf = (char*)realloc(buf, bufSize * sizeof(char));
-            if(!buf)
-            {
-                fprintf(stderr,COLOR_BLUE "ERROR\t" COLOR_NONE "Reallocation error\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-}
+#pragma region EXECUTIONS
 
 int launch_job(struct job* job){
     struct process* proc;
@@ -464,15 +377,9 @@ int execute_builtin_command(struct job* job, struct process* proc, int in_fd, in
     }
     return status;
 }
+#pragma endregion EXECUTIONS
 
-char* get_user_dir()
-{
-    char* user = getenv("USER");
-    char* dir = calloc(1, sizeof(user) + 6);
-    strcat(dir, "/home/");
-    strcat(dir, user);
-    return dir;
-}
+#pragma region BUILT IN
 int shell_cd(int argc, char** argv){
     if(argc == 1){
         char* dir = get_user_dir();
@@ -551,273 +458,6 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
 void shell_exit(){
     save_history();
     exit(0);
-}
-void load_history(){
-    history = init();
-    char* dir = get_user_dir();
-    dir = realloc(dir, sizeof(dir) + 12);
-    dir = strcat(dir, "/history.dat");
-
-    int fd = open(dir, O_CREAT|O_APPEND |O_RDONLY, S_IRWXU);
-    if(fd < 0)
-    {
-        fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Opening history\n");
-        return;
-    }
-    
-    char ** array = calloc(HISTORY_LIMIT, HISTORY_LIMIT * sizeof(char*));
-    int maxSize = 64;
-    char letter;
-    char *buf;
-
-    for (int i = 0; read(fd, &letter, 1)>0 && i < HISTORY_LIMIT; i++)
-    {
-        buf = calloc(maxSize, sizeof(char));
-        array[i] = buf;
-        buf[0] = letter;
-        for (int j = 1; read(fd, &letter, 1)>0 && letter != '\n'; j++)
-        {
-            if(j == maxSize -1){
-                maxSize *= 2;
-                buf = realloc(buf, maxSize * sizeof(char));
-            }
-            buf[j] = letter;
-            buf[j+1] = '\0';
-
-        }
-        maxSize = 64;
-        append(history, array[i]);
-    }
-    close(fd);
-}
-void save_history(){
-    char* dir = get_user_dir();
-    dir = realloc(dir, sizeof(dir) + 12);
-    dir = strcat(dir, "/history.dat");
-    if(remove(dir)<0)
-    {
-        fprintf(stderr,COLOR_RED "ERROR\t" COLOR_NONE "Deleting history\n");
-        return;
-    }
-    int fd = open(dir, O_CREAT |O_RDWR, S_IRWXU);
-    
-    if(fd < 0)
-    {
-        fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Opening history\n");
-        return;
-    }
-
-    while(history->size > HISTORY_LIMIT)
-        popfirst(history);
-    
-    char* cmd;
-    node* iter = history->first;
-
-    for(int i = 0;i < history->size; i++){
-        cmd = (char*)iter->data;
-
-        int j = 0;
-        while(cmd[j] != '\0')
-            write(fd, &cmd[j++], sizeof(char));
-        write(fd, "\n", sizeof(char));
-        iter = iter->next;
-    }
-    close(fd);
-}
-void verify_zombies(){
-    int status, pid;
-    while((pid = waitpid(-1, &status, WNOHANG|WUNTRACED|__W_CONTINUED)>0)){
-        if(WIFEXITED(status))
-            set_process_status(pid, STATUS_DONE);
-        else if(WIFSTOPPED(status))
-            set_process_status(pid, STATUS_SUSPENDED);
-        else if(WIFCONTINUED(status))
-            set_process_status(pid, STATUS_CONTINUED);
-        
-        int job_id = get_job_id_by_pid(pid);
-        if(job_id > 0 && is_job_completed(job_id)){
-            print_job_status(job_id);
-            remove_job(job_id);
-        }
-    }
-}
-
-struct job* get_job_by_id(int id){
-    if(id > NR_JOBS)
-        return NULL;
-    return shell->jobs[id];
-}
-
-int get_pgid_by_job_id(int id){
-    struct job* job = get_job_by_id(id);
-    if(job == NULL)
-        return -1;
-    return job->pgid;
-}
-
-int get_next_job_id(){ 
-    for(int i  = 1; i <= NR_JOBS; i++)
-        if(shell->jobs[i] == NULL)
-            return i;
-    return -1;
-}
-
-int print_processes_of_job(int id){
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return -1;
-    
-    printf("[%d]", id);
-
-    struct process *proc;
-    for(proc = shell->jobs[id]->root; proc != NULL; proc = proc->next)
-        printf(" %d", proc->pid);
-    printf("\n");
-    return 0;
-}
-int print_job_status(int id)
-{
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return -1;
-    
-    printf("[%d]", id);
-    
-    struct process * proc;
-    for(proc = shell->jobs[id]->root; proc != NULL; proc = proc->next)
-        printf("\t%d\t%s\t%s\n", proc->pid, STATUS_STRING[proc->status], proc->command);
-    return 0;
-}
-int release_job(int id){
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return -1;
-
-    struct job* job = get_job_by_id(id);
-    struct process *proc, *temp;
-    for(proc = job->root; proc != NULL;){
-        temp = proc->next;
-        free(proc->command);
-        free(proc->argv);
-        free(proc->input_path);
-        free(proc->output_path);
-        free(proc);
-        proc = temp;
-    }
-    free(job->command);
-    free(job);
-
-    return 0;
-}
-int insert_job(struct job* job){
-    int* id = calloc(1, sizeof(int));
-    *id = get_next_job_id();
-    if(id < 0)
-        return -1;
-    
-    job->id = *id;
-    shell->jobs[*id] = job;
-    if(job->mode == BACKGROUND_EXECUTION)
-        insert(shell->back_id, id);
-    return *id;
-}
-
-int remove_job(int id){
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return -1;   
-    
-    release_job(id);
-    shell->jobs[id] = NULL;
-    return 0;
-}
-
-int is_job_completed(int id){
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return 0;
-
-    struct process *proc;
-    for(proc = shell->jobs[id]->root; proc != NULL; proc = proc->next)
-        if(proc->status != STATUS_DONE)
-            return 0;
-    return 1;
-}
-int set_process_status(int pid, int status){
-    int i;
-    struct process *proc;
-    for(i = 1; i < NR_JOBS; i++){
-        if(shell->jobs[i] == NULL)
-            continue;
-        for(proc = shell->jobs[i]->root; proc != NULL; proc = proc->next)
-            if(proc->pid ==  pid){
-                proc->status = status;
-                return 0;
-            }
-    }
-    return -1;
-}
-int set_job_status(int id, int status){
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return -1;
-
-    int i;
-    struct process* proc;
-    struct job* job = get_job_by_id(id);
-    for(proc = job->root; proc != NULL; proc = proc->next)
-        if(proc->status != STATUS_DONE)
-            proc->status = status;
-    return 0;
-}
-
-int wait_for_pid(int pid){
-    int status = 0;
-
-    waitpid(pid, &status, WUNTRACED);
-    if(WIFEXITED(status))
-        set_process_status(pid, STATUS_DONE);
-    else if(WIFSIGNALED(status))
-        set_process_status(pid, STATUS_TERMINATED);
-    else if(WSTOPSIG(status))
-    {
-        status = -1;
-        set_process_status(pid, STATUS_SUSPENDED);
-    }
-    return status;
-}
-
-int wait_for_job(int id){
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return -1;
-    
-    int proc_count = get_proc_count(id, FILTER_REMAINING);
-    int wait_pid = -1, wait_count = 0;
-    int status = 0;
-
-    do{
-        wait_pid = waitpid(-shell->jobs[id]->pgid, &status, WUNTRACED);
-        wait_count++;
-
-        if(WIFEXITED(status))
-            set_process_status(wait_pid, STATUS_DONE);
-        else if(WIFSIGNALED(status))
-            set_process_status(wait_pid, STATUS_TERMINATED);
-        else if(WSTOPSIG(status))
-        {
-            status = -1;
-            set_process_status(wait_pid, STATUS_SUSPENDED);
-            if(wait_count == proc_count)
-                print_job_status(id);
-        }
-    }while(wait_count < proc_count);
-    return status;
-}
-int get_proc_count(int id, int filter){
-    if(id > NR_JOBS || shell->jobs[id] == NULL)
-        return -1;
-    
-    int count = 0;
-    struct process *proc;
-    struct job* job = get_job_by_id(id);
-    for(proc = job->root; proc != NULL; proc = proc->next)
-        if(filter == FILTER_ALL || (filter == FILTER_DONE && proc->status == STATUS_DONE) || (filter == FILTER_REMAINING && proc->status != STATUS_DONE))
-            count++;
-    return count;
 }
 int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, int mode){
     childpid = fork();
@@ -901,7 +541,6 @@ int shell_again(int argc, char** argv)
     }
     launch_job(job);
 }
-
 int shell_fg(int argc, char**argv)
 {
     int status;
@@ -1042,6 +681,380 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
         }
     }
 }
+#pragma endregion BUILT IN
+
+#pragma region TOOLS
+void load_history(){
+    history = init();
+    char* dir = get_user_dir();
+    dir = realloc(dir, sizeof(dir) + 12);
+    dir = strcat(dir, "/history.dat");
+
+    int fd = open(dir, O_CREAT|O_APPEND |O_RDONLY, S_IRWXU);
+    if(fd < 0)
+    {
+        fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Opening history\n");
+        return;
+    }
+    
+    char ** array = calloc(HISTORY_LIMIT, HISTORY_LIMIT * sizeof(char*));
+    int maxSize = 64;
+    char letter;
+    char *buf;
+
+    for (int i = 0; read(fd, &letter, 1)>0 && i < HISTORY_LIMIT; i++)
+    {
+        buf = calloc(maxSize, sizeof(char));
+        array[i] = buf;
+        buf[0] = letter;
+        for (int j = 1; read(fd, &letter, 1)>0 && letter != '\n'; j++)
+        {
+            if(j == maxSize -1){
+                maxSize *= 2;
+                buf = realloc(buf, maxSize * sizeof(char));
+            }
+            buf[j] = letter;
+            buf[j+1] = '\0';
+
+        }
+        maxSize = 64;
+        append(history, array[i]);
+    }
+    close(fd);
+}
+void save_history(){
+    char* dir = get_user_dir();
+    dir = realloc(dir, sizeof(dir) + 12);
+    dir = strcat(dir, "/history.dat");
+    if(remove(dir)<0)
+    {
+        fprintf(stderr,COLOR_RED "ERROR\t" COLOR_NONE "Deleting history\n");
+        return;
+    }
+    int fd = open(dir, O_CREAT |O_RDWR, S_IRWXU);
+    
+    if(fd < 0)
+    {
+        fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Opening history\n");
+        return;
+    }
+
+    while(history->size > HISTORY_LIMIT)
+        popfirst(history);
+    
+    char* cmd;
+    node* iter = history->first;
+
+    for(int i = 0;i < history->size; i++){
+        cmd = (char*)iter->data;
+
+        int j = 0;
+        while(cmd[j] != '\0')
+            write(fd, &cmd[j++], sizeof(char));
+        write(fd, "\n", sizeof(char));
+        iter = iter->next;
+    }
+    close(fd);
+}
+void verify_zombies(){
+    int status, pid;
+    while((pid = waitpid(-1, &status, WNOHANG|WUNTRACED|__W_CONTINUED)>0)){
+        if(WIFEXITED(status))
+            set_process_status(pid, STATUS_DONE);
+        else if(WIFSTOPPED(status))
+            set_process_status(pid, STATUS_SUSPENDED);
+        else if(WIFCONTINUED(status))
+            set_process_status(pid, STATUS_CONTINUED);
+        
+        int job_id = get_job_id_by_pid(pid);
+        if(job_id > 0 && is_job_completed(job_id)){
+            print_job_status(job_id);
+            remove_job(job_id);
+        }
+    }
+}
+char* read_line()
+{
+    int bufSize = RL_BUFSIZE;
+    int position = 0;
+    char* buf = calloc(1, bufSize * sizeof(char));
+    int c;
+    int count_quotation = 0;
+    if(!buf){
+        fprintf(stderr,COLOR_BLUE "ERROR\t" COLOR_NONE "Allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    while(1){
+        c = getchar();
+        if(c == '\"')
+            count_quotation++;
+        if( c == '#' && count_quotation % 2 == 0){
+            buf[position] = '\0';
+            while(1)
+            {
+                c = getchar();
+                if(c == EOF || c == '\n' )
+                   return buf;
+            }
+        }
+        if(c == EOF || c == '\n' ){
+            buf[position] = '\0';
+            return buf;
+        }
+        else
+            buf[position] = c;
+        position++;
+
+        if(position >= bufSize){
+            bufSize += RL_BUFSIZE;
+            buf = (char*)realloc(buf, bufSize * sizeof(char));
+            if(!buf)
+            {
+                fprintf(stderr,COLOR_BLUE "ERROR\t" COLOR_NONE "Reallocation error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+}
+#pragma endregion TOOLS
+
+#pragma region EXTRAS
+int get_job_id_by_pid(int pid){
+    struct process* proc;
+    for(int i = 0; i < NR_JOBS; i++){
+        if(shell->jobs[i] != NULL){
+            for(proc = shell->jobs[i]->root; proc != NULL; proc = proc->next)
+                if(proc->pid == pid)
+                    return i;
+        }
+    }
+    return -1;
+}
+
+void update_dir_info(){
+    getcwd(shell->cur_dir, sizeof(shell->cur_dir));
+}
+
+void print_prompt(){
+    update_dir_info();
+    printf( COLOR_BLUE BOLD_TEXT "%s" COLOR_NONE, shell->cur_dir);
+    printf( PROMPT);
+}
+
+int get_command_type(char* command){
+    if(command == NULL)
+        return COMMAND_EXTERN;
+    if(!strcmp(command, "exit"))
+        return COMMAND_EXIT;
+    else if(!strcmp(command, "history"))
+        return COMMAND_HISTORY;
+    else if(!strcmp(command, "again"))
+        return COMMAND_AGAIN;
+    else if(!strcmp(command, "cd"))
+        return COMMAND_CD;
+    else if(!strcmp(command, "jobs"))
+        return COMMAND_JOBS;
+    else if(!strcmp(command, "fg"))
+        return COMMAND_FG;
+    else if(!strcmp(command, "help"))
+        return COMMAND_HELP;
+    else return COMMAND_EXTERN;
+}
+
+char* get_user_dir()
+{
+    char* user = getenv("USER");
+    char* dir = calloc(1, sizeof(user) + 6);
+    strcat(dir, "/home/");
+    strcat(dir, user);
+    return dir;
+}
+
+struct job* get_job_by_id(int id){
+    if(id > NR_JOBS)
+        return NULL;
+    return shell->jobs[id];
+}
+
+int get_pgid_by_job_id(int id){
+    struct job* job = get_job_by_id(id);
+    if(job == NULL)
+        return -1;
+    return job->pgid;
+}
+
+int get_next_job_id(){ 
+    for(int i  = 1; i <= NR_JOBS; i++)
+        if(shell->jobs[i] == NULL)
+            return i;
+    return -1;
+}
+
+int print_processes_of_job(int id){
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return -1;
+    
+    printf("[%d]", id);
+
+    struct process *proc;
+    for(proc = shell->jobs[id]->root; proc != NULL; proc = proc->next)
+        printf(" %d", proc->pid);
+    printf("\n");
+    return 0;
+}
+
+int print_job_status(int id)
+{
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return -1;
+    
+    printf("[%d]", id);
+    
+    struct process * proc;
+    for(proc = shell->jobs[id]->root; proc != NULL; proc = proc->next)
+        printf("\t%d\t%s\t%s\n", proc->pid, STATUS_STRING[proc->status], proc->command);
+    return 0;
+}
+
+int release_job(int id){
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return -1;
+
+    struct job* job = get_job_by_id(id);
+    struct process *proc, *temp;
+    for(proc = job->root; proc != NULL;){
+        temp = proc->next;
+        free(proc->command);
+        free(proc->argv);
+        free(proc->input_path);
+        free(proc->output_path);
+        free(proc);
+        proc = temp;
+    }
+    free(job->command);
+    free(job);
+
+    return 0;
+}
+
+int insert_job(struct job* job){
+    int* id = calloc(1, sizeof(int));
+    *id = get_next_job_id();
+    if(id < 0)
+        return -1;
+    
+    job->id = *id;
+    shell->jobs[*id] = job;
+    if(job->mode == BACKGROUND_EXECUTION)
+        insert(shell->back_id, id);
+    return *id;
+}
+
+int remove_job(int id){
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return -1;   
+    
+    release_job(id);
+    shell->jobs[id] = NULL;
+    return 0;
+}
+
+int is_job_completed(int id){
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return 0;
+
+    struct process *proc;
+    for(proc = shell->jobs[id]->root; proc != NULL; proc = proc->next)
+        if(proc->status != STATUS_DONE)
+            return 0;
+    return 1;
+}
+
+int set_process_status(int pid, int status){
+    int i;
+    struct process *proc;
+    for(i = 1; i < NR_JOBS; i++){
+        if(shell->jobs[i] == NULL)
+            continue;
+        for(proc = shell->jobs[i]->root; proc != NULL; proc = proc->next)
+            if(proc->pid ==  pid){
+                proc->status = status;
+                return 0;
+            }
+    }
+    return -1;
+}
+
+int set_job_status(int id, int status){
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return -1;
+
+    int i;
+    struct process* proc;
+    struct job* job = get_job_by_id(id);
+    for(proc = job->root; proc != NULL; proc = proc->next)
+        if(proc->status != STATUS_DONE)
+            proc->status = status;
+    return 0;
+}
+
+int wait_for_pid(int pid){
+    int status = 0;
+
+    waitpid(pid, &status, WUNTRACED);
+    if(WIFEXITED(status))
+        set_process_status(pid, STATUS_DONE);
+    else if(WIFSIGNALED(status))
+        set_process_status(pid, STATUS_TERMINATED);
+    else if(WSTOPSIG(status))
+    {
+        status = -1;
+        set_process_status(pid, STATUS_SUSPENDED);
+    }
+    return status;
+}
+
+int wait_for_job(int id){
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return -1;
+    
+    int proc_count = get_proc_count(id, FILTER_REMAINING);
+    int wait_pid = -1, wait_count = 0;
+    int status = 0;
+
+    do{
+        wait_pid = waitpid(-shell->jobs[id]->pgid, &status, WUNTRACED);
+        wait_count++;
+
+        if(WIFEXITED(status))
+            set_process_status(wait_pid, STATUS_DONE);
+        else if(WIFSIGNALED(status))
+            set_process_status(wait_pid, STATUS_TERMINATED);
+        else if(WSTOPSIG(status))
+        {
+            status = -1;
+            set_process_status(wait_pid, STATUS_SUSPENDED);
+            if(wait_count == proc_count)
+                print_job_status(id);
+        }
+    }while(wait_count < proc_count);
+    return status;
+}
+
+int get_proc_count(int id, int filter){
+    if(id > NR_JOBS || shell->jobs[id] == NULL)
+        return -1;
+    
+    int count = 0;
+    struct process *proc;
+    struct job* job = get_job_by_id(id);
+    for(proc = job->root; proc != NULL; proc = proc->next)
+        if(filter == FILTER_ALL || (filter == FILTER_DONE && proc->status == STATUS_DONE) || (filter == FILTER_REMAINING && proc->status != STATUS_DONE))
+            count++;
+    return count;
+}
+#pragma endregion EXTRAS
 
 #pragma region SIGNALS
 void SIG_TRY_KILL_PROC(int signal){
@@ -1067,4 +1080,3 @@ void SIG_TRY_KILL_PROC(int signal){
     }
 }
 #pragma endregion SIGNALs
-
