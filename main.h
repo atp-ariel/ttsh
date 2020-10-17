@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 #include "list.h"
 #include "process.h"
-#include "help.h"
 
 
 #pragma region DEFINITIONS
@@ -45,9 +44,9 @@
 /* End history settings */
 
 /* General settings and variables*/
-#define MAXLETTERS 1000 // numero maximo de letras soportadas
-#define MAXCOMMANDS 100 // numero maximo de componentes soportados
-#define RL_BUFSIZE 1024
+#define MAXLETTERS 8000 // numero maximo de letras soportadas
+#define MAXCOMMANDS 1000 // numero maximo de componentes soportados
+#define RL_BUFSIZE 8000
 #define NR_JOBS 512
 #define TOKEN_BUFSIZE 64
 #define TOKEN_DELIMITERS " \t\r\n\a\""
@@ -153,8 +152,7 @@ int wait_for_job(int id);
 // Return a count of a process that satisfied a condition filter.
 int get_proc_count(int id, int filter);
 
-// Kill a process in foreground
-void SIG_TRY_KILL_PROC(int signal);
+
 #pragma endregion PROTOTYPES
 
 #pragma region BUILTIN.

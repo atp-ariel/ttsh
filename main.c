@@ -1,7 +1,9 @@
 #include "main.h"
+#include "signal_treatment.h"
 #include <errno.h>
 #include <dirent.h>
 
+#pragma region MAIN_METHODS
 int main(int argc, char** argv){
     shell_init();
     shell_loop();
@@ -12,6 +14,7 @@ void shell_init(){
     signal(SIGQUIT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
+    signal(SIGCHLD, SIG_DFL);
 
     pid_t pid = getpid();
     setpgid(pid, pid);
@@ -25,50 +28,6 @@ void shell_init(){
     load_history();  
     childpid = -1;
 }
-int get_job_id_by_pid(int pid){
-    struct process* proc;
-    for(int i = 0; i < NR_JOBS; i++){
-        if(shell->jobs[i] != NULL){
-            for(proc = shell->jobs[i]->root; proc != NULL; proc = proc->next)
-                if(proc->pid == pid)
-                    return i;
-        }
-    }
-    return -1;
-}
-void SIG_TRY_KILL_PROC(int signal){
-    if(signal == SIGINT){
-        int index = -1;
-        int pid = getpid();
-        printf("%d", pid);
-        struct process* proc;
-        index = get_job_id_by_pid(pid);
-        struct job* job = shell->jobs[index];
-
-        if(job ==  NULL){
-            return;
-        }
-        else if(job->count_kill == 0)
-        {
-            kill(pid, SIGKILL);
-            job->count_kill++;
-            printf("%i\n", job->count_kill);
-        }
-        else if(job->count_kill-- == 1)
-            kill(pid, SIGKILL);
-    }
-}
-void update_dir_info(){
-    getcwd(shell->cur_dir, sizeof(shell->cur_dir));
-}
-
-void print_prompt(){
-    update_dir_info();
-    printf( COLOR_BLUE BOLD_TEXT "%s" COLOR_NONE, shell->cur_dir);
-    printf( PROMPT);
-}
-
-
 void shell_loop(){
     char* line;
     struct job* job;
@@ -94,6 +53,9 @@ void shell_loop(){
         status = launch_job(job);
     }
 }
+#pragma endregion MAIN_METHODS
+
+#pragma region PARSER & TOKENIZER
 list* helper_strtrim(char* line){
     char* head = line;
     char* tail = line + strlen(line);
@@ -168,22 +130,8 @@ list* tokenizer(char* argv){
 }
 struct process* parse_command_segment(char* segment){
     int bufSize = TOKEN_BUFSIZE;
-    //int position = 0;
     char* command = strdup(segment);
-    //char* token;
-    //char** tokens = calloc(1, bufSize*sizeof(char*));
 
-    //if(!tokens){
-    //    fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Allocation error\n");
-    //    exit(EXIT_FAILURE);
-    //}
-    
-    //token = strtok(segment, TOKEN_DELIMITERS);
-    
-    //while(token != NULL){
-    //    tokens[position++] = token;
-    //    token = strtok(NULL, TOKEN_DELIMITERS);
-    //}
     list* tokenize = tokenizer(segment);
     char** tokens = (char**)(tokenize->first->data);
     int real_size = *(int*)(tokenize->tail->data);
@@ -192,12 +140,12 @@ struct process* parse_command_segment(char* segment){
     char* output_path = NULL;
     int i;
     
-    for (i = 0; i < /*position*/ real_size; i++)
+    for (i = 0; i <  real_size; i++)
         if(tokens[i][0] == '<' || tokens[i][0] == '>' || !strcmp(tokens[i], ">>")) 
             break;
     argc = i;
 
-    for(; i < /*position*/ real_size; i++){
+    for(; i <  real_size; i++){
         if(tokens[i][0] == '<'){
             input_path = calloc(1, strlen(tokens[i+1])+1);
             strcpy(input_path, tokens[++i]);
@@ -214,7 +162,7 @@ struct process* parse_command_segment(char* segment){
         }
         else break;
     }
-    for(i = argc; i <= /*position*/ real_size; i++)
+    for(i = argc; i <=  real_size; i++)
         tokens[i] = NULL;
     struct process* new_proc = calloc(1, sizeof(struct process));
     new_proc->command = command;
@@ -283,6 +231,33 @@ struct job* parse_command(char* line){
     new_job->count_kill = 0;
     return new_job;
 }
+#pragma endregion PARSER & TOKENIZER
+
+int get_job_id_by_pid(int pid){
+    struct process* proc;
+    for(int i = 0; i < NR_JOBS; i++){
+        if(shell->jobs[i] != NULL){
+            for(proc = shell->jobs[i]->root; proc != NULL; proc = proc->next)
+                if(proc->pid == pid)
+                    return i;
+        }
+    }
+    return -1;
+}
+
+void update_dir_info(){
+    getcwd(shell->cur_dir, sizeof(shell->cur_dir));
+}
+
+void print_prompt(){
+    update_dir_info();
+    printf( COLOR_BLUE BOLD_TEXT "%s" COLOR_NONE, shell->cur_dir);
+    printf( PROMPT);
+}
+
+
+
+
 int get_command_type(char* command){
     if(command == NULL)
         return COMMAND_EXTERN;
@@ -409,7 +384,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
     else if(!childpid){
         signal(SIGINT, SIG_TRY_KILL_PROC);
         signal(SIGQUIT, SIG_DFL);
-        signal(SIGTSTP, SIG_DFL);
+        signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_DFL);
         signal(SIGTTOU, SIG_DFL);
         signal(SIGCHLD, SIG_DFL);
@@ -1068,4 +1043,28 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
     }
 }
 
+#pragma region SIGNALS
+void SIG_TRY_KILL_PROC(int signal){
+    if(signal == SIGINT){
+        int index = -1;
+        int pid = getpid();
+        struct process* proc;
+        index = get_job_id_by_pid(pid);
+        struct job* job = shell->jobs[index];
+
+        if(job ==  NULL){
+            return;
+        }
+        else if(job->count_kill == 0)
+        {
+            kill(pid, SIGKILL);
+            job->count_kill++;
+            printf("%i\n", job->count_kill);
+        }
+        else if(job->count_kill-- == 1){
+            kill(pid, SIGKILL);
+        }
+    }
+}
+#pragma endregion SIGNALs
 
