@@ -1,0 +1,7 @@
+info_shell:
+
+Nuestro shell utiliza una estructura info_shell que tiene los siguientes campos:
+--int pid-> El pid del shell
+--char* cur_dir-> La dirección actual del shell 
+--struct job** jobs-> Todos los jobs que están en el shell
+--list* back_id-> Almacena los índices que tienen los jobs según el orden en que fueron introducidos en la lista jobs

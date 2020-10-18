@@ -1,0 +1,23 @@
+job:
+
+Nuestro shell usa una estructura llamada job que tiene los siguiente campos:
+--int id -> Id del job
+--int count_kill -> La cantidad de señales SIGINT que ha recibido el job
+--struct process* root -> Primer proceso del job
+--char* command -> La línea de comando del job
+--pid_t pgid -> Id del grupo de procesos al que pertenece el job
+--int mode -> Modo de ejecución en el que tiene que ejecutarse el job: pipeline, background,foreground
+--int save-> Indica si el jobs hay que salvarlo en el historial
+
+process:
+
+Nuestro shell usa una estructura llamada process que tiene lo siguientes campos:
+--char* command -> El comando del proceso
+--int argc -> Cantidad de parámetros que recibe el proceso
+--char** argv-> Parámetros que recibe el proceso
+--char* input_path-> La dirección del archivo donde se obtiene la entrada del proces, en caso de existir
+--char* output_path-> La dirección del archivo donde se redirige la salida del proceso, en caso de existir
+--pid_t pid-> Pid del proceso
+--int type-> Tipo de proceso: externos y built-in
+--int status-> Estado en el que está el proceso
+--struct process* next-> Proceso siguiente
