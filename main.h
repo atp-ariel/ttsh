@@ -78,6 +78,7 @@ const char* STATUS_STRING[] = {"Running", "Done", "Suspended", "Continued", "Ter
 
 #pragma region InfoShell
 struct info_shell{
+    int pid;
     //Direction of the shell
     char cur_dir[MAXLETTERS];
     //Jobs of in the shell

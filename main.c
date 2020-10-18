@@ -7,20 +7,25 @@
 int main(int argc, char** argv){
     shell_init();
     shell_loop();
+    
 }
 
 void shell_init(){
-    signal(SIGINT, SIG_TRY_KILL_PROC);
+    sigaction(SIGINT, &(struct sigaction){.sa_handler = SIG_TRY_KILL_PROC}, NULL);
     signal(SIGQUIT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
     signal(SIGCHLD, SIG_DFL);
 
+    /* Grupo del shell */
     pid_t pid = getpid();
+
     setpgid(pid, pid);
     tcsetpgrp(STDOUT_FILENO, pid);
 
     shell = calloc(1, sizeof(struct info_shell));
+    shell->pid = pid;
+    /* Grupo del shell */
 
     for (int i = 0; i < NR_JOBS; i++)
         shell->jobs[i] = NULL; 
@@ -295,7 +300,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
     if(childpid < 0)
        return -1;
     else if(!childpid){
-        signal(SIGINT, SIG_TRY_KILL_PROC);
+        signal(SIGINT, SIG_IGN);
         signal(SIGQUIT, SIG_DFL);
         signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_DFL);
@@ -338,6 +343,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
 
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
+            setpgid(shell->pid, job->pgid);
             status = wait_for_job(job->id);
             signal(SIGTTOU, SIG_IGN);
             tcsetpgrp(STDOUT_FILENO, getpid());
@@ -525,6 +531,10 @@ int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, 
 }
 int shell_again(int argc, char** argv)
 {
+    if(argv[1] == NULL){
+        fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "No number in history\n");
+        return -1;
+    }
     int index = atoi(argv[1]);
     if(index > history->size){
         fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Unexistent command in history at index: " COLOR_GREEN "%i\n", index);
@@ -550,6 +560,11 @@ int shell_fg(int argc, char**argv)
     pid_t pid;
     int job_id = -1;
 
+    if(!shell->back_id->size)
+    {
+        fprintf(stderr, COLOR_RED "ERROR:\t" COLOR_NONE "No such jobs in the background\n");
+        return -1;
+    }
     if(argc == 1)
     {
         job_id  = *(int*)(popfirst(shell->back_id)->data);
@@ -730,11 +745,7 @@ void save_history(){
     char* dir = get_user_dir();
     dir = realloc(dir, sizeof(dir) + 12);
     dir = strcat(dir, "/history.dat");
-    if(remove(dir)<0)
-    {
-        fprintf(stderr,COLOR_RED "ERROR\t" COLOR_NONE "Deleting history\n");
-        return;
-    }
+    remove(dir);
     int fd = open(dir, O_CREAT |O_RDWR, S_IRWXU);
     
     if(fd < 0)
@@ -842,7 +853,7 @@ void update_dir_info(){
 
 void print_prompt(){
     update_dir_info();
-    printf( COLOR_BLUE BOLD_TEXT "%s" COLOR_NONE, shell->cur_dir);
+    printf( BOLD_TEXT COLOR_GREEN "(ttsh) " COLOR_BLUE  "%s" COLOR_NONE, shell->cur_dir);
     printf( PROMPT);
 }
 
@@ -1061,26 +1072,26 @@ int get_proc_count(int id, int filter){
 #pragma endregion EXTRAS
 
 #pragma region SIGNALS
-void SIG_TRY_KILL_PROC(int signal){
-    if(signal == SIGINT){
+void SIG_TRY_KILL_PROC(int signals){
+    if(signals == SIGINT){
         int index = -1;
         int pid = getpid();
-        struct process* proc;
         index = get_job_id_by_pid(pid);
         struct job* job = shell->jobs[index];
-
-        if(job ==  NULL){
+        if(pid == shell->pid){
+            printf("\n");
             return;
         }
-        else if(job->count_kill == 0)
+        if(job->count_kill == 0)
         {
-            kill(pid, SIGKILL);
+            signal(SIGINT, SIG_DFL);
+            kill(pid, SIGINT);
             job->count_kill++;
-            printf("%i\n", job->count_kill);
         }
-        else if(job->count_kill-- == 1){
+        else if(job->count_kill == 1){
+            setpgid(shell->pid, shell->pid);
             kill(pid, SIGKILL);
         }
     }
 }
-#pragma endregion SIGNALs
+#pragma endregion SIGNALS
