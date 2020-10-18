@@ -407,8 +407,9 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             tcsetpgrp(STDOUT_FILENO, job->pgid);
             setpgid(shell->pid, job->pgid);
             status = wait_for_job(job->id);
+            setpgid(shell->pid, shell->pid);
             signal(SIGTTOU, SIG_IGN);
-            tcsetpgrp(STDOUT_FILENO, getpid());
+            tcsetpgrp(STDOUT_FILENO, shell->pid);
             signal(SIGTTOU, SIG_DFL);
         }
     }
@@ -1167,5 +1168,6 @@ void SIG_TRY_KILL_PROC(int signals){
         printf("\n");
         return;
     }
+    printf("as");
 }
 #pragma endregion SIGNALS
