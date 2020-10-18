@@ -1,3 +1,52 @@
 history:
 
-    Imprime por STDOUT los últimos 10 comandos ejecutados.
+Nuestro shell permite el ingreso del comando history:
+--Cuando se ingresa el comando "history" este devuelve los últimos 10 comandos ingresados en el shell incluyendo el propio history.
+--Permite además que la salida del comando history sea guardado en un archivo. (Redirección de salida)
+--Al iniciarse el shell este carga los comando ingresados anteriormente history.dat que se encuentra en la dirección "/home/user". De esta forma si el shell se cierra y se vuelve abrir el historial de comandos no se pierde. En caso de que al inicio del shell este archivo no se encuentre entonces el historial del shell estará vacío.
+--Mientras el shell se este ejecutando el historial de comandos se guarda en una estructura interna del shell llamada "info_shell". Si el shell se cierra normalente entonces la información guardada en "info_shell" se guarda en el archivo "history.dat" pero si el shell se cierra debido a un comportamiento inesperado entonces el historial de comandos que está en "info_shell" no se guarda en el archivo "history.dat" por lo que en este queda el historial de comandos del último shell que se cerro sin errores inesperados.
+
+Ejemplos:
+
+
+Supongamos que el historial de comandos está vacío, que tenemos el shell abierto y hacemos:
+
+$echo HelloWorld!
+HelloWorld!
+$history
+[1]: echo HelloWorld!
+[2]: history
+
+Primero se ingresa y se ejecuta el comando "echo HelloWorld!" y luego ingresamos "history" y se obtiene los últimos 2 comandos ingresados puesto que solo se han ingresados 2 comandos.
+
+
+Supongamos que tenemos el siguiente historial:
+
+[1]: ls
+[2]: python3 &
+[3]: bash &
+[4]: fg 1
+[5]: python3 &
+[6]: fg
+[7]: history
+[8]: ls | more
+[9]: exit
+[10]: history
+
+Si hacemos:
+ 
+$echo HelloWorld!
+HelloWorld!
+$history
+[1]: bash &
+[2]: fg 1
+[3]: python3 &
+[4]: fg
+[5]: history
+[6]: ls | more
+[7]: exit
+[8]: history
+[9]: echo HelloWorld!
+[10]: history
+
+Obsérvese que los dos primeros comandos ya no están, el resto de los que estaban, disminuyeron su índice en dos y entraron dos nuevos comandos al final "echo HelloWorld!" y "history".

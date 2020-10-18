@@ -13,6 +13,8 @@ Funcionalidades:
     ctrl+c: envia la señal SIGINT al proceso que se ejecuta (0.5 puntos)
     help: descripción de las funcionalidades del shell (1 punto)
 
+Total: 7 puntos
+
 Build-in:
     cd: cambia de direcciones
     exit: termina el shell

@@ -1,0 +1,6 @@
+jobs:
+
+Nuestro shell permite ingresar el comando jobs:
+--Este comando permite recorrer los jobs que se encuentran en la lista de jobs en background e imprime el indice que ocupa en dicha lista, su back_id es el id que tiene como job en dicha lista y el estado en que se encuentra en dicho job
+--Su puede guardar la salida de este comando en un archivo, o sea jobs > a es un comando valido
+--Si no hay jobs en el background imprime "No jobs in background"

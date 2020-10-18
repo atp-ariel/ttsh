@@ -1,0 +1,25 @@
+fg:
+
+Nuestro shell permite implementar el comando fg:
+--Si se ingresa fg sin parámetros entonces se trae al foreground el último job enviado al background. En caso de que no haya ningún job en background se imprime "Error: No such job in background".
+--Si se ingresa fg con un índice se chequea que es un índice válido, o sea que es un índice entre 1 y la cantidad de jobs que estám en la lista jobs en background. En caso del índice ser incorrecto, o sea que no están en el rango de entre 1 y la cantidad de jobs en background se imprime "ERROR fg<index>: No such job".
+--Para ambos casos luego de ya saber que job se va a ejecutar en foreground, a este job se le envían la señal "SIGCONT" para que el job se ejecute. Entonces se remueve el job de la lista jobs en background y se espera que el job termine de ejecutarse, devolviendole el control al shell.
+
+
+Ejemplos:
+
+
+$ python3 &
+$ bash &
+$ fg 1
+>>>
+
+Primero se manda a python3 al background, luego se manda a bash al background y se trae a python3 al foreground ya que está en el índice 1.
+
+
+$ python3 &
+$ bash &
+$ fg
+$ bash $
+
+Primero se manda a python3 al background, luego se manda a bash al background y se trae a bash al foreground ya que fue el último job en mandarse a background.

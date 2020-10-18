@@ -45,6 +45,7 @@ void shell_init(){
 
     //load the history to the info shell struct
     load_history();  
+    printf("shell_init\n");
     childpid = -1;
 }
 void shell_loop(){
@@ -348,7 +349,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
     if(proc->type != COMMAND_EXTERN && execute_builtin_command(job,proc, in_fd, out_fd, mode))
         return 0;
 
-    int status = 0;
+    int status = -1;
     
     //do fork to execute
     childpid = fork();
@@ -401,13 +402,23 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             job->pgid = proc->pid;
             setpgid(childpid, job->pgid);
         }
+        //config redirections
+        if(in_fd != STDIN_FILENO){
+            dup2(in_fd, STDIN_FILENO);
+            close(in_fd);
+        }
 
 
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
+            
             setpgid(shell->pid, job->pgid);
             status = wait_for_job(job->id);
-            setpgid(shell->pid, shell->pid);
+            printf("status %i\n", status);
+            printf("launch_process\n");
+            childpid = -1;
+            setpgid(shell->pid, 0);
+
             signal(SIGTTOU, SIG_IGN);
             tcsetpgrp(STDOUT_FILENO, shell->pid);
             signal(SIGTTOU, SIG_DFL);
@@ -532,6 +543,9 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
             wait_for_job(job->id);
+            printf("shell_jobs\n");
+            childpid = -1;
+
             signal(SIGTTOU, SIG_IGN);
             tcsetpgrp(STDOUT_FILENO, getpid());
             signal(SIGTTOU, SIG_DFL);
@@ -604,6 +618,9 @@ int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, 
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
             wait_for_job(job->id);
+            printf("shell_history");
+            childpid = -1;
+
             signal(SIGTTOU, SIG_IGN);
             tcsetpgrp(STDOUT_FILENO, getpid());
             signal(SIGTTOU, SIG_DFL);
@@ -670,9 +687,11 @@ int shell_fg(int argc, char**argv)
 
         tcsetpgrp(STDOUT_FILENO, pid);
         set_job_status(job_id, STATUS_CONTINUED);
+        childpid = pid;
         if(wait_for_job(job_id)>= 0)
             remove_job(job_id);
-
+        printf("shell_fg0");
+        childpid = -1;
 
         signal(SIGTTOU, SIG_IGN);
         tcsetpgrp(STDOUT_FILENO, getpid());
@@ -701,8 +720,11 @@ int shell_fg(int argc, char**argv)
     
     tcsetpgrp(STDOUT_FILENO, pid);
     set_job_status(job_id, STATUS_CONTINUED);
+    childpid = pid;
     if(wait_for_job(job_id)>= 0)
         remove_job(job_id);
+    printf("shell_fg");
+    childpid = -1;
     
 
     signal(SIGTTOU, SIG_IGN);
@@ -784,6 +806,8 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
             wait_for_job(job->id);
+            printf("shell_help");
+            childpid = -1;
             signal(SIGTTOU, SIG_IGN);
             tcsetpgrp(STDOUT_FILENO, getpid());
             signal(SIGTTOU, SIG_DFL);
@@ -1144,6 +1168,7 @@ int wait_for_job(int id){
                 print_job_status(id);
         }
     }while(wait_count < proc_count);
+    
     return status;
 }
 
@@ -1163,11 +1188,32 @@ int get_proc_count(int id, int filter){
 
 #pragma region SIGNALS
 void SIG_TRY_KILL_PROC(int signals){
-    if(shell->pid == getpgid(shell->pid))
-    {
-        printf("\n");
-        return;
-    }
-    printf("as");
+        int index = -1;
+        struct process* proc;
+        index = get_job_id_by_pid(childpid);
+
+        printf("childpid %i\n", childpid);
+        printf("shell->pid %d\n", shell->pid);
+        if(childpid == -1)
+        {
+            printf("\nb");
+            return;
+        }
+        struct job* job = shell->jobs[index];
+        printf("job->count %i\n", job->count_kill);
+        
+        if(job->count_kill == 0)
+        {
+            kill(childpid, SIGINT);
+            job->count_kill++;
+
+            printf("%i\nd", job->count_kill);
+        }
+        else if(job->count_kill == 1){
+            printf("\na");
+            kill(childpid, SIGKILL);
+            printf("signal");
+            childpid = -1;
+        }
 }
 #pragma endregion SIGNALS

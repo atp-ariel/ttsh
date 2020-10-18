@@ -1,3 +1,3 @@
 exit:
 
-    Cierra el shell y salva el historial en el archivo history.dat
+Cierra el shell y salva el historial en el archivo history.dat. El archivo history.dat es donde se guardan los comandos que se han ido introduciendo.
