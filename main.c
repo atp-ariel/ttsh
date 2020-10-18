@@ -45,7 +45,6 @@ void shell_init(){
 
     //load the history to the info shell struct
     load_history();  
-    printf("shell_init\n");
     childpid = -1;
 }
 void shell_loop(){
@@ -414,8 +413,6 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             
             setpgid(shell->pid, job->pgid);
             status = wait_for_job(job->id);
-            printf("status %i\n", status);
-            printf("launch_process\n");
             childpid = -1;
             setpgid(shell->pid, 0);
 
@@ -543,7 +540,6 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
             wait_for_job(job->id);
-            printf("shell_jobs\n");
             childpid = -1;
 
             signal(SIGTTOU, SIG_IGN);
@@ -618,7 +614,6 @@ int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, 
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
             wait_for_job(job->id);
-            printf("shell_history");
             childpid = -1;
 
             signal(SIGTTOU, SIG_IGN);
@@ -690,7 +685,6 @@ int shell_fg(int argc, char**argv)
         childpid = pid;
         if(wait_for_job(job_id)>= 0)
             remove_job(job_id);
-        printf("shell_fg0");
         childpid = -1;
 
         signal(SIGTTOU, SIG_IGN);
@@ -723,7 +717,6 @@ int shell_fg(int argc, char**argv)
     childpid = pid;
     if(wait_for_job(job_id)>= 0)
         remove_job(job_id);
-    printf("shell_fg");
     childpid = -1;
     
 
@@ -806,7 +799,6 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
             wait_for_job(job->id);
-            printf("shell_help");
             childpid = -1;
             signal(SIGTTOU, SIG_IGN);
             tcsetpgrp(STDOUT_FILENO, getpid());
@@ -1192,27 +1184,19 @@ void SIG_TRY_KILL_PROC(int signals){
         struct process* proc;
         index = get_job_id_by_pid(childpid);
 
-        printf("childpid %i\n", childpid);
-        printf("shell->pid %d\n", shell->pid);
         if(childpid == -1)
         {
-            printf("\nb");
+            printf("\n");
             return;
         }
         struct job* job = shell->jobs[index];
-        printf("job->count %i\n", job->count_kill);
-        
         if(job->count_kill == 0)
         {
             kill(childpid, SIGINT);
             job->count_kill++;
-
-            printf("%i\nd", job->count_kill);
         }
         else if(job->count_kill == 1){
-            printf("\na");
             kill(childpid, SIGKILL);
-            printf("signal");
             childpid = -1;
         }
 }
