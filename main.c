@@ -773,6 +773,12 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
             f = fopen("./help/jobs.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "fg"))
             f = fopen("./help/fg.ttsh.help", "r");
+        else if(!strcmp(proc->argv[1], "help"))
+            f = fopen("./help/helph.ttsh.help", "r");
+        else if(!strcmp(proc->argv[1], "job"))
+            f = fopen("./help/job.ttsh.help", "r");
+        else if(!strcmp(proc->argv[1], "info_shell"))
+            f = fopen("./help/info_shell.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "--all"))
             f = fopen("./help/all.ttsh.help", "r");
         else
