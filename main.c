@@ -1,3 +1,12 @@
+/* ------------------------------------------------- */
+/* ------------ Toledo & Triana Shell -------------- */
+/* ----------------- Version: 1.0 ------------------ */
+/* ------------------------------------------------- */
+/* -- Authors: ------------------------------------- */
+/* ------ Ariel Alfonso Triana Perez --------------- */
+/* ------ Carlos Toledo Silva ---------------------- */
+/* ------------------------------------------------- */
+
 #include "main.h"
 #include "signal_treatment.h"
 #include <errno.h>
@@ -7,15 +16,17 @@
 int main(int argc, char** argv){
     shell_init();
     shell_loop();
-    
 }
 
 void shell_init(){
+
+    /* Configurate the signals of the shell */
     sigaction(SIGINT, &(struct sigaction){.sa_handler = SIG_TRY_KILL_PROC}, NULL);
     signal(SIGQUIT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
     signal(SIGCHLD, SIG_DFL);
+    /* Configurate the signals of the shell */
 
     /* Grupo del shell */
     pid_t pid = getpid();
@@ -27,9 +38,12 @@ void shell_init(){
     shell->pid = pid;
     /* Grupo del shell */
 
+    // initializate the list of jobs and the list of jobs in bg
     for (int i = 0; i < NR_JOBS; i++)
         shell->jobs[i] = NULL; 
     shell->back_id = init();
+
+    //load the history to the info shell struct
     load_history();  
     childpid = -1;
 }
@@ -39,22 +53,31 @@ void shell_loop(){
     int status = 1;
 
     while(1){
+        //check if exist a zombie procces to kill
         verify_zombies();
-
+        //print the prompt 
         print_prompt();
-        
+
+        //read the line  
         line = read_line();
+
+        //if line is a prompt empty (eg: $)
         if(strlen(line) == 0)
             continue;
         
+        //parse the command and build a job
         job = parse_command(line);
 
+        //save a job 
         if(job->save){
+            // again command save the history in index of again
             if(strncmp(job->command, "again", 5))
                 append(history, strdup(job->command));
             while(history->size > HISTORY_LIMIT)
                 popfirst(history);
         }
+
+        //run job
         status = launch_job(job);
     }
 }
@@ -64,13 +87,16 @@ void shell_loop(){
 list* helper_strtrim(char* line){
     char* head = line;
     char* tail = line + strlen(line);
+    //var to store if save is activate
     int* save = calloc(1, sizeof(int));
     *save = 1;
+    // remove whitespace from head
     while(*head == ' ')
     {
         *save = 0;
         head++;
     }
+    //remove whitespace from tail
     while(*tail == ' '){
         tail[0] = '\0';
         tail--;
@@ -79,6 +105,8 @@ list* helper_strtrim(char* line){
 
     append(i, head);
     append(i, save);
+
+    //return [head, save]
     return i;
 }
 list* tokenizer(char* argv){
@@ -137,14 +165,18 @@ struct process* parse_command_segment(char* segment){
     int bufSize = TOKEN_BUFSIZE;
     char* command = strdup(segment);
 
+    // tokenize the segment
     list* tokenize = tokenizer(segment);
+    //get tokens 
     char** tokens = (char**)(tokenize->first->data);
+    //get size of tokens list
     int real_size = *(int*)(tokenize->tail->data);
     int argc = 0;
     char* input_path= NULL;
     char* output_path = NULL;
     int i;
     
+    /* Configure redirections */
     for (i = 0; i <  real_size; i++)
         if(tokens[i][0] == '<' || tokens[i][0] == '>' || !strcmp(tokens[i], ">>")) 
             break;
@@ -167,6 +199,9 @@ struct process* parse_command_segment(char* segment){
         }
         else break;
     }
+    /* configure redirections */
+
+    // initiaizate proccess
     for(i = argc; i <=  real_size; i++)
         tokens[i] = NULL;
     struct process* new_proc = calloc(1, sizeof(struct process));
@@ -182,21 +217,28 @@ struct process* parse_command_segment(char* segment){
     return new_proc;
 }
 struct job* parse_command(char* line){
+
+    // trim the line
     list*  temp = helper_strtrim(line);
 
+    // get timmed line
     line = (char*)(temp->first->data);
+    //duplicate line
     char* command = strdup(line);
     
     struct process *root_proc = NULL, *proc = NULL;
     char* line_cursor = line, *c = line, *seg;
     unsigned int seg_len = 0, mode = FOREGROUND_EXECUTION;
 
+    //activate background flags execution and remove char &
     if(line[strlen(line) - 1] == '&'){
         mode = BACKGROUND_EXECUTION;
         line[strlen(line)-1] = '\0';
     }
 
+
     while(1){
+        //if EOF or pipe parse the segment before this char
         if(*c == '\0' || *c == '|'){
             seg = (char*)malloc((seg_len + 1) * sizeof(char));
             strncpy(seg, line_cursor, seg_len);
@@ -221,12 +263,14 @@ struct job* parse_command(char* line){
             }
             else break;
         }
+        //continue search EOF or pipe
         else{
             seg_len++;
             c++;
         }
     }
 
+    // initializate job struct
     struct job* new_job = calloc(1,sizeof(struct job));
     new_job->root = root_proc;
     new_job->command = command;
@@ -244,11 +288,15 @@ int launch_job(struct job* job){
     struct process* proc;
     int status = 0, in_fd = 0, fd[2], job_id = -1;
 
+    //check if exist zombie process to kill
     verify_zombies();
+    //if this command can execute in bg or pipe then insert in job list
     if(job->root->type == COMMAND_EXTERN || job->root->type == COMMAND_HELP || job->root->type == COMMAND_HISTORY || job->root->type == COMMAND_JOBS)
         job_id = insert_job(job);
     
+
     for(proc = job->root; proc != NULL; proc = proc->next){
+        //open fd to input redirect
         if(proc == job->root && proc->input_path != NULL)
         {
             in_fd = open(proc->input_path, O_RDONLY);
@@ -258,6 +306,7 @@ int launch_job(struct job* job){
                 return -1;
             }
         }
+        //open fd to output redirect
         int out_fd = STDOUT_FILENO;
         if(proc->output_path != NULL){
             out_fd = open(proc->output_path, O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
@@ -266,6 +315,7 @@ int launch_job(struct job* job){
         }
         if(proc->next != NULL){
             pipe(fd);
+            //execute the process in pipeline
             if(out_fd == STDOUT_FILENO)
                 status = launch_process(job, proc, in_fd, fd[1], PIPELINE_EXECUTION);
             else 
@@ -275,13 +325,17 @@ int launch_job(struct job* job){
             in_fd = fd[0];
         }
         else 
+            //execute the process in background or foreground
             status = launch_process(job, proc, in_fd, out_fd, job->mode);
 
     }
 
-    if(job->root->type == COMMAND_EXTERN || job->root->type == COMMAND_HISTORY || job->root->type == COMMAND_JOBS){
+    
+    if(job->root->type == COMMAND_EXTERN || job->root->type== COMMAND_HELP || job->root->type == COMMAND_HISTORY || job->root->type == COMMAND_JOBS){
+        //remove from the list
         if(status >= 0 && job->mode == FOREGROUND_EXECUTION)
             remove_job(job_id);
+        //print process in job
         else if(job->mode == BACKGROUND_EXECUTION)
             print_processes_of_job(job_id);
     }
@@ -290,24 +344,28 @@ int launch_job(struct job* job){
 
 int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd, int mode){
     proc->status = STATUS_RUNNING;
+    // execute built in command
     if(proc->type != COMMAND_EXTERN && execute_builtin_command(job,proc, in_fd, out_fd, mode))
         return 0;
 
     int status = 0;
-        
+    
+    //do fork to execute
     childpid = fork();
 
+    //error forking
     if(childpid < 0)
        return -1;
     else if(!childpid){
-        signal(SIGINT, SIG_IGN);
+        //child process
+        signal(SIGINT, SIG_DFL);
         signal(SIGQUIT, SIG_DFL);
         signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_DFL);
         signal(SIGTTOU, SIG_DFL);
         signal(SIGCHLD, SIG_DFL);
 
-
+        // update pid in process struct and pgid in job struct
         proc->pid = getpid();
         if(job->pgid > 0)
             setpgid(0, job->pgid);
@@ -316,6 +374,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             setpgid(0, job->pgid);
         }
 
+        //config redirections
         if(in_fd != STDIN_FILENO){
             dup2(in_fd, STDIN_FILENO);
             close(in_fd);
@@ -325,6 +384,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             close(out_fd);
         }
         
+        //execute command
         if(execvp(proc->argv[0], proc->argv)< 0)
         {
             fprintf(stderr, "%s: command not found\n", proc->argv[0]);
@@ -333,6 +393,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
         exit(EXIT_SUCCESS);
     }
     else{
+
         proc->pid = childpid;
         if(job->pgid>0)
             setpgid(childpid, job->pgid);
@@ -340,6 +401,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             job->pgid = proc->pid;
             setpgid(childpid, job->pgid);
         }
+
 
         if(mode == FOREGROUND_EXECUTION){
             tcsetpgrp(STDOUT_FILENO, job->pgid);
@@ -355,6 +417,8 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
 
 int execute_builtin_command(struct job* job, struct process* proc, int in_fd, int out_fd, int mode){
     int status = 1;
+
+    //execute the built in
     switch(proc->type){
         case COMMAND_HELP:
             shell_help(job, proc, in_fd, out_fd, mode);
@@ -387,12 +451,15 @@ int execute_builtin_command(struct job* job, struct process* proc, int in_fd, in
 
 #pragma region BUILT IN
 int shell_cd(int argc, char** argv){
+    //get home dir /home/USER
     char* dir = get_user_dir();
+    //cd redirection without args
     if(argc == 1){
         chdir(dir);
         update_dir_info();
         return 1;
     }
+    //parse ~
     if(!strncmp(argv[1], "~", 1)){
         chdir(dir);
         update_dir_info();
@@ -402,8 +469,10 @@ int shell_cd(int argc, char** argv){
         if(strncmp(argv[0], "/", 1))
             argv[1]++;
     }
+    //no dir
     if(!strlen(argv[1]))
         return 1;
+    //change dir after ~
     if(!chdir(argv[1])){
         update_dir_info();
         return 1;
@@ -417,6 +486,7 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
     childpid = fork();
 
     if(!childpid){
+        //child process
         signal(SIGINT, SIG_DFL);
         signal(SIGQUIT, SIG_DFL);
         signal(SIGTSTP, SIG_DFL);
@@ -425,6 +495,7 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
         signal(SIGCHLD, SIG_DFL);
 
 
+        //update pid and pgid
         proc->pid = getpid();
         if(job->pgid > 0)
             setpgid(0, job->pgid);
@@ -432,7 +503,7 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
             job->pgid = proc->pid;
             setpgid(0, job->pgid);
         }
-
+        //redirections
         if(in_fd != STDIN_FILENO){
             dup2(in_fd, STDIN_FILENO);
             close(in_fd);
@@ -441,6 +512,8 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
             dup2(out_fd, STDOUT_FILENO);
             close(out_fd);
         }
+
+        //print status jobs
         for(int i = 0;i < NR_JOBS; i++)
           if(shell->jobs[i]!= NULL && shell->jobs[i]->mode == BACKGROUND_EXECUTION)
             print_job_status(i);
@@ -465,7 +538,9 @@ int shell_jobs(struct job* job, struct process* proc, int in_fd, int out_fd, int
     }
 }
 void shell_exit(){
+    //save history
     save_history();
+    //close shell
     exit(0);
 }
 int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, int mode){
@@ -496,6 +571,8 @@ int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, 
             dup2(out_fd, STDOUT_FILENO);
             close(out_fd);
         }
+
+        
         node* iter;
     
         while(history->size > HISTORY_LIMIT)
@@ -503,11 +580,14 @@ int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, 
 
         iter = history->first;
         char* cmd;
+
+        //print history 
         for(int i = 0; i < history->size; i++){
             cmd = (char*)(iter->data);
             printf("[%i]: %s\n", i+1, cmd);
             iter = iter->next;
         }
+        //save history
         save_history();
         exit(EXIT_SUCCESS);
     }
@@ -531,11 +611,14 @@ int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, 
 }
 int shell_again(int argc, char** argv)
 {
+    //no arg exceptions
     if(argv[1] == NULL){
         fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "No number in history\n");
         return -1;
     }
     int index = atoi(argv[1]);
+
+    //validate index
     if(index > history->size){
         fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Unexistent command in history at index: " COLOR_GREEN "%i\n", index);
         return -1;
@@ -545,13 +628,17 @@ int shell_again(int argc, char** argv)
         fprintf(stderr, COLOR_RED "ERROR\t" COLOR_NONE "Index out of range of history\n");
         return -1;
     }
+
+    //parse command from history
     char* line = strdup((char*)(get(history, index)->data));
     struct job* job = parse_command(line);
+    //save command
     if(job->save){
         append(history, strdup(job->command));
         while(history->size > HISTORY_LIMIT)
             popfirst(history);
     }
+    //run job
     launch_job(job);
 }
 int shell_fg(int argc, char**argv)
@@ -565,6 +652,8 @@ int shell_fg(int argc, char**argv)
         fprintf(stderr, COLOR_RED "ERROR:\t" COLOR_NONE "No such jobs in the background\n");
         return -1;
     }
+
+    // fg the last insert in bg
     if(argc == 1)
     {
         job_id  = *(int*)(popfirst(shell->back_id)->data);
@@ -1073,25 +1162,10 @@ int get_proc_count(int id, int filter){
 
 #pragma region SIGNALS
 void SIG_TRY_KILL_PROC(int signals){
-    if(signals == SIGINT){
-        int index = -1;
-        int pid = getpid();
-        index = get_job_id_by_pid(pid);
-        struct job* job = shell->jobs[index];
-        if(pid == shell->pid){
-            printf("\n");
-            return;
-        }
-        if(job->count_kill == 0)
-        {
-            signal(SIGINT, SIG_DFL);
-            kill(pid, SIGINT);
-            job->count_kill++;
-        }
-        else if(job->count_kill == 1){
-            setpgid(shell->pid, shell->pid);
-            kill(pid, SIGKILL);
-        }
+    if(shell->pid == getpgid(shell->pid))
+    {
+        printf("\n");
+        return;
     }
 }
 #pragma endregion SIGNALS
