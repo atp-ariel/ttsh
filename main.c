@@ -805,7 +805,7 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
 void load_history(){
     history = init();
     char* dir = get_user_dir();
-    dir = realloc(dir, sizeof(dir) + 12);
+    dir = realloc(dir, sizeof(dir) + 13);
     dir = strcat(dir, "/history.dat");
 
     int fd = open(dir, O_CREAT|O_APPEND |O_RDONLY, S_IRWXU);
