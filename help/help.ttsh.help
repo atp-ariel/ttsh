@@ -10,10 +10,9 @@ Funcionalidades:
     background: procesos ejecutándose en segundo plano (0.5 puntos)
     spaces: comandos con cualquier cantidad de espacios (0.5 puntos)
     history: historial de comandos (0.5 puntos)
-    ctrl+c: envia la señal SIGINT al proceso que se ejecuta (0.5 puntos)
     help: descripción de las funcionalidades del shell (1 punto)
 
-Total: 7 puntos
+Total: 6.5 puntos
 
 Build-in:
     cd: cambia de direcciones
