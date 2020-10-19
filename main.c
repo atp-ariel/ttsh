@@ -16,6 +16,7 @@
 int main(int argc, char** argv){
     shell_init();
     shell_loop();
+    
 }
 
 void shell_init(){
@@ -55,10 +56,9 @@ void shell_loop(){
     while(1){
         //check if exist a zombie procces to kill
         verify_zombies();
-        //print the prompt 
-        print_prompt();
 
-        //read the line  
+        print_prompt();
+        
         line = read_line();
 
         //if line is a prompt empty (eg: $)
@@ -348,16 +348,14 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
     if(proc->type != COMMAND_EXTERN && execute_builtin_command(job,proc, in_fd, out_fd, mode))
         return 0;
 
-    int status = -1;
-    
-    //do fork to execute
+    int status = 0;
+        
     childpid = fork();
 
     //error forking
     if(childpid < 0)
        return -1;
     else if(!childpid){
-        //child process
         signal(SIGINT, SIG_DFL);
         signal(SIGQUIT, SIG_DFL);
         signal(SIGTSTP, SIG_IGN);
@@ -401,11 +399,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             job->pgid = proc->pid;
             setpgid(childpid, job->pgid);
         }
-        //config redirections
-        if(in_fd != STDIN_FILENO){
-            dup2(in_fd, STDIN_FILENO);
-            close(in_fd);
-        }
+     
 
 
         if(mode == FOREGROUND_EXECUTION){
@@ -417,7 +411,7 @@ int launch_process(struct job* job, struct process* proc, int in_fd, int out_fd,
             setpgid(shell->pid, 0);
 
             signal(SIGTTOU, SIG_IGN);
-            tcsetpgrp(STDOUT_FILENO, shell->pid);
+            tcsetpgrp(STDOUT_FILENO, getpid());
             signal(SIGTTOU, SIG_DFL);
         }
     }
@@ -582,8 +576,6 @@ int shell_history(struct job* job, struct process* proc, int in_fd, int out_fd, 
             dup2(out_fd, STDOUT_FILENO);
             close(out_fd);
         }
-
-        
         node* iter;
     
         while(history->size > HISTORY_LIMIT)
@@ -687,6 +679,7 @@ int shell_fg(int argc, char**argv)
             remove_job(job_id);
         childpid = -1;
 
+
         signal(SIGTTOU, SIG_IGN);
         tcsetpgrp(STDOUT_FILENO, getpid());
         signal(SIGTTOU, SIG_DFL);
@@ -773,12 +766,6 @@ void shell_help(struct job* job, struct process* proc, int in_fd, int out_fd, in
             f = fopen("./help/jobs.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "fg"))
             f = fopen("./help/fg.ttsh.help", "r");
-        else if(!strcmp(proc->argv[1], "help"))
-            f = fopen("./help/helph.ttsh.help", "r");
-        else if(!strcmp(proc->argv[1], "job"))
-            f = fopen("./help/job.ttsh.help", "r");
-        else if(!strcmp(proc->argv[1], "info_shell"))
-            f = fopen("./help/info_shell.ttsh.help", "r");
         else if(!strcmp(proc->argv[1], "--all"))
             f = fopen("./help/all.ttsh.help", "r");
         else
@@ -1166,7 +1153,6 @@ int wait_for_job(int id){
                 print_job_status(id);
         }
     }while(wait_count < proc_count);
-    
     return status;
 }
 
@@ -1186,24 +1172,25 @@ int get_proc_count(int id, int filter){
 
 #pragma region SIGNALS
 void SIG_TRY_KILL_PROC(int signals){
+    if(signals == SIGINT){
         int index = -1;
-        struct process* proc;
-        index = get_job_id_by_pid(childpid);
-
-        if(childpid == -1)
-        {
+        int pid = getpid();
+        index = get_job_id_by_pid(pid);
+        struct job* job = shell->jobs[index];
+        if(pid == shell->pid){
             printf("\n");
             return;
         }
-        struct job* job = shell->jobs[index];
         if(job->count_kill == 0)
         {
-            kill(childpid, SIGINT);
+            signal(SIGINT, SIG_DFL);
+            kill(pid, SIGINT);
             job->count_kill++;
         }
         else if(job->count_kill == 1){
-            kill(childpid, SIGKILL);
-            childpid = -1;
+            setpgid(shell->pid, shell->pid);
+            kill(pid, SIGKILL);
         }
+    }
 }
 #pragma endregion SIGNALS
