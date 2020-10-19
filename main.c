@@ -130,8 +130,8 @@ list* tokenizer(char* argv){
                 }
                 token[pos++] = *argv;
                 if(pos == sizeof(token) -1){
-                    maxSize *= 2;
-                    token = realloc(token, maxSize * sizeof(char));
+                    int temp = sizeof(token) + RL_BUFSIZE;
+                    token = realloc(token, temp);
                 }
                 argv++;
             }
@@ -150,12 +150,14 @@ list* tokenizer(char* argv){
             }
         }
         if(*pos2 == sizeof(tokens)-1){
-            maxSize *= 2;
-            tokens = realloc(tokens, maxSize);
+            //maxSize *= 2;
+            //tokens = realloc(tokens, maxSize);
+            int temp = sizeof(tokens) + RL_BUFSIZE;
+            tokens = realloc(tokens, temp);
         }
-        tokens[*pos2] = strdup(token);
+        tokens[*pos2] = token;
         *pos2 = *pos2 + 1;
-        free (token);
+        //free (token);
     }
 
     list* to_return = init();

@@ -46,7 +46,7 @@
 /* General settings and variables*/
 #define MAXLETTERS 1000 // numero maximo de letras soportadas
 #define MAXCOMMANDS 100 // numero maximo de componentes soportados
-#define RL_BUFSIZE 32
+#define RL_BUFSIZE 1024
 #define NR_JOBS 512
 #define TOKEN_BUFSIZE 64
 #define TOKEN_DELIMITERS " \t\r\n\a\""
