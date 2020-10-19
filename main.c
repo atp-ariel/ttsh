@@ -67,7 +67,7 @@ void shell_loop(){
         
         //parse the command and build a job
         job = parse_command(line);
-
+        free(line);
         //save a job 
         if(job->save){
             // again command save the history in index of again
@@ -114,7 +114,7 @@ list* tokenizer(char* argv){
     int pos = 0;
     int* pos2 = calloc(1, sizeof(int));
     *pos2 = 0;
-    char** tokens = calloc(1, maxSize*sizeof(char*));
+    char** tokens = calloc(1, maxSize);
     char* token = calloc(1, RL_BUFSIZE * sizeof(char));
     int quotation = 0;
     while(*argv != '\0'){
@@ -151,11 +151,13 @@ list* tokenizer(char* argv){
         }
         if(*pos2 == sizeof(tokens)-1){
             maxSize *= 2;
-            tokens = realloc(tokens, sizeof(char*) * maxSize);
+            tokens = realloc(tokens, maxSize);
         }
-        tokens[*pos2] = token;
+        tokens[*pos2] = strdup(token);
         *pos2 = *pos2 + 1;
+        free (token);
     }
+
     list* to_return = init();
     append(to_return, tokens);
     append(to_return, pos2);

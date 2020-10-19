@@ -44,9 +44,9 @@
 /* End history settings */
 
 /* General settings and variables*/
-#define MAXLETTERS 8000 // numero maximo de letras soportadas
-#define MAXCOMMANDS 1000 // numero maximo de componentes soportados
-#define RL_BUFSIZE 8000
+#define MAXLETTERS 1000 // numero maximo de letras soportadas
+#define MAXCOMMANDS 100 // numero maximo de componentes soportados
+#define RL_BUFSIZE 32
 #define NR_JOBS 512
 #define TOKEN_BUFSIZE 64
 #define TOKEN_DELIMITERS " \t\r\n\a\""
