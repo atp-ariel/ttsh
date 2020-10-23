@@ -143,8 +143,52 @@ $ bash $
 ```
 Primero se manda a python3 al background, luego se manda a bash al background y se trae a bash al foreground ya que fue el último job en mandarse a background.
 
+### `jobs`:
 
-### exit:
+Nuestro shell permite ingresar el comando `jobs`:
+* Este comando permite recorrer los jobs que se encuentran en la lista de jobs en background e imprime el indice que ocupa en dicha lista, su `back_id` es el id que tiene como job en dicha lista y el estado en que se encuentra en dicho job
+* Su puede guardar la salida de este comando en un archivo, o sea jobs `>` a es un comando valido
+* Si no hay jobs en el background imprime **No jobs in background**
+
+### `again <index>`:
+  
+Nuestro shell permite que se le ingrese el comando `again <index>`:
+* Primero se chequea que sea un índice válido y en caso de no serlo se imprime **ERROR Index out of range of history**. 
+* Si el índice es válido entonces se busca en el historial y el comando correspondiente se guarda en el mismo y se ejecuta. 
+* Si no se pone ningún número entonces se imprime **ERROR No Index**
+
+#### Ejemplo:
+
+Supongamos que tenemos el siguiente historial:
+```
+[1]: ls -la --color=never | wc
+[2]: echo HelloAgain
+[3]: ls -la | cat
+[4]: history
+[5]: exit
+[6]: history
+[7]: history
+[8]: echo a
+[9]: exit
+[10]: history
+```
+Si introducimos `again 8` entonces se ejecuta el comando `echo a`  y el historial queda de la siguiente forma:
+```
+[1]: echo HelloAgain
+[2]: ls -la | cat
+[3]: history
+[4]: exit
+[5]: history
+[6]: history
+[7]: echo a
+[8]: exit
+[9]: history
+[10]: echo a
+```
+**Nota:** No funciona con tuberías
+
+
+### `exit`:
 
 Cierra el shell y salva el historial en el archivo *history.dat*. El archivo history.dat es donde se guardan los comandos que se han ido introduciendo.
 
