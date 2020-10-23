@@ -1,22 +1,22 @@
 # ttsh (Triana & Toledo Shell)
 
 ## Funcionalidades:
-    * **basic:** funcionalidades básicas 
-    * **multi-pipe:** múltiples tuberías 
-    * **background:** procesos ejecutándose en segundo plano 
-    * **spaces:** comandos con cualquier cantidad de espacios (0.5 puntos)
-    * **history:** historial de comandos (0.5 puntos)
-    * **help:** descripción de las funcionalidades del shell (1 punto)
+* **basic:** funcionalidades básicas 
+* **multi-pipe:** múltiples tuberías 
+* **background:** procesos ejecutándose en segundo plano 
+* **spaces:** comandos con cualquier cantidad de espacios (0.5 puntos)
+* **history:** historial de comandos (0.5 puntos)
+* **help:** descripción de las funcionalidades del shell (1 punto)
 
 
 ## Build-in:
-    * **cd:** cambia de direcciones
-    * **exit:** termina el shell
-    * **history:** muestra el historial
-    * **fg:** devuelve al foreground un proceso del background
-    * **again:** ejecuta un comando del historial
-    * **help:** muestra la ayuda
-    * **jobs:** muestra todos los jobs en cola
+* **cd:** cambia de direcciones
+* **exit:** termina el shell
+* **history:** muestra el historial
+* **fg:** devuelve al foreground un proceso del background
+* **again:** ejecuta un comando del historial
+* **help:** muestra la ayuda
+* **jobs:** muestra todos los jobs en cola
 
 Para ver la descripción de todos estos built-in ejecute el comando `help --all` o para ver uno en específico `help <commando>`
 
@@ -149,5 +149,5 @@ Primero se manda a python3 al background, luego se manda a bash al background y 
 Cierra el shell y salva el historial en el archivo *history.dat*. El archivo history.dat es donde se guardan los comandos que se han ido introduciendo.
 
 ## Contribuciones 
-	1. Ariel Alfonso Triana Pérez (ArielTriana)
-	2. Carlos Toledo Silva (CTS-crypto)
+1. Ariel Alfonso Triana Pérez (ArielTriana)
+2. Carlos Toledo Silva (CTS-crypto)
