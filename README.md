@@ -1,61 +1,153 @@
 # ttsh (Triana & Toledo Shell)
 
 ## Funcionalidades:
-* **basic:** funcionalidades básicas (3 puntos)
-* **multi-pipe:** múltiples tuberías (1 punto)
-* **background:** procesos ejecutándose en segundo plano (0.5 puntos)
-* **spaces:** comandos con cualquier cantidad de espacios (0.5 puntos)
-* **history:** historial de comandos (0.5 puntos)
-* **help:** descripción de las funcionalidades del shell (1 punto)
+    * **basic:** funcionalidades básicas 
+    * **multi-pipe:** múltiples tuberías 
+    * **background:** procesos ejecutándose en segundo plano 
+    * **spaces:** comandos con cualquier cantidad de espacios (0.5 puntos)
+    * **history:** historial de comandos (0.5 puntos)
+    * **help:** descripción de las funcionalidades del shell (1 punto)
 
-## Comandos built-in
-* **cd:** cambia de direcciones
-* **exit:** termina el shell
-* **history:** muestra el historial
-* **fg:** devuelve al foreground un proceso del background
-* **again:** ejecuta un comando del historial
-* **help:** muestra la ayuda
-* **jobs:** muestra todos los jobs en cola
 
-## Ejecución del shell
-Para ejecutar abra una consola y ejecute `make` y luego `./ttsh`
+## Build-in:
+    * **cd:** cambia de direcciones
+    * **exit:** termina el shell
+    * **history:** muestra el historial
+    * **fg:** devuelve al foreground un proceso del background
+    * **again:** ejecuta un comando del historial
+    * **help:** muestra la ayuda
+    * **jobs:** muestra todos los jobs en cola
 
-## Comandos
-En el shell con el comando `exit` se puede cerrar el mismo, al cerrar salva los comandos en el historial de comandos. 
+Para ver la descripción de todos estos built-in ejecute el comando `help --all` o para ver uno en específico `help <commando>`
 
-En el shell con el comando `history` se puede consultar los últimos 10 comandos en las ejecuciones del shell.
+### job:
 
-Para implementarlo se crea un archivo en el directorio **/home/USER** llamado *history.dat* donde se guardan los últimos 10 comandos. Es posible mostrar más de 10 comandos, solo es necesario definir la cantidad en la macro `HISTORY_LIMITS` del archivo **main.h**. Cuando se inicializa el shell, se carga el historial en una lista, y al cerrar el shell se guarda la lista en el archivo. Si se desea que un comando no se guarde en el historial solo es necesario introducir un espacio antes del comando. 
+Nuestro shell usa una estructura llamada job que tiene los siguiente campos:
+ * `int id` -> Id del job
+ * `int count_kill` -> La cantidad de señales SIGINT que ha recibido el job
+ * `struct process* root` -> Primer proceso del job
+ * `char* command` -> La línea de comando del job
+ * `pid_t pgid` -> Id del grupo de procesos al que pertenece el job
+ * `int mode` -> Modo de ejecución en el que tiene que ejecutarse el job: pipeline, background,foreground
+ * `int save` -> Indica si el jobs hay que salvarlo en el historial
 
-Por ejemplo:
+### process:
+
+Nuestro shell usa una estructura llamada process que tiene lo siguientes campos:
+ * `char* command` -> El comando del proceso
+ * `int argc` -> Cantidad de parámetros que recibe el proceso
+ * `char** argv` -> Parámetros que recibe el proceso
+ * `char* input_path` -> La dirección del archivo donde se obtiene la entrada del proces, en caso de existir
+ * `char* output_path` -> La dirección del archivo donde se redirige la salida del proceso, en caso de existir
+ * `pid_t pid` -> Pid del proceso
+ * `int type` -> Tipo de proceso: externos y built-in
+ * `int status`-> Estado en el que está el proceso
+ * `struct process* next` -> Proceso siguiente
+
+
+### info_shell:
+
+Nuestro shell utiliza una estructura info_shell que tiene los siguientes campos:
+ * `int pid` -> El pid del shell
+ * `char* cur_dir` -> La dirección actual del shell 
+ * `struct job** jobs`-> Todos los jobs que están en el shell
+ * `list* back_id` -> Almacena los índices que tienen los jobs según el orden en que fueron introducidos en la lista jobs
+
+
+### `history`:
+
+Nuestro shell permite el ingreso del comando `history`:
+ * Cuando se ingresa el comando `history` este devuelve los últimos 10 comandos ingresados en el shell incluyendo el propio history.
+ * Permite además que la salida del comando history sea guardado en un archivo. (Redirección de salida)
+ * Al iniciarse el shell este carga los comando ingresados anteriormente *history.dat* que se encuentra en la dirección **/home/user**. De esta forma si el shell se cierra y se vuelve abrir el historial de comandos no se pierde. En caso de que al inicio del shell este archivo no se encuentre entonces el historial del shell estará vacío.
+ * Mientras el shell se este ejecutando el historial de comandos se guarda en una estructura interna del shell llamada **info_shell**. Si el shell se cierra normalente entonces la información guardada en **info_shell** se guarda en el archivo *history.dat* pero si el shell se cierra debido a un comportamiento inesperado entonces el historial de comandos que está en **info_shell** no se guarda en el archivo *history.dat* por lo que en este queda el historial de comandos del último shell que se cerro sin errores inesperados.
+
+#### Ejemplos:
+
+
+Supongamos que el historial de comandos está vacío, que tenemos el shell abierto y hacemos:
 ```
-ls
- echo hola mundo 
+$echo HelloWorld!
+HelloWorld!
+$history
+[1]: echo HelloWorld!
+[2]: history
 ```
-El comando `ls` se guarda en el historial pero `echo hola mundo` no se guarda.
+Primero se ingresa y se ejecuta el comando `echo HelloWorld!` y luego ingresamos `history` y se obtiene los últimos 2 comandos ingresados puesto que solo se han ingresados 2 comandos.
 
-En el shell con el comando `again <index>` se puede volver a ejecutar el comando que ocupa la posición `index` en el historial. Al ejecutar el comando lo que se guarda en el historial es el comando ha ejecutar por el `again`.
 
-El comando `again` puede dar varios errores en ejecución:
-	1. El primer error es que no exista ningún comando en el índice especificado y reportando el error: `'Unexistent command in history at index: <index>'`
-	2. El segundo es que el índice esté fuera de la cantidad máxima de comandos en el historial, reportando el error: `'Index out of range of history'`
+Supongamos que tenemos el siguiente historial:
+```
+[1]: ls
+[2]: python3 &
+[3]: bash &
+[4]: fg 1
+[5]: python3 &
+[6]: fg
+[7]: history
+[8]: ls | more
+[9]: exit
+[10]: history
+```
+Si hacemos:
+```
+$echo HelloWorld!
+HelloWorld!
+$history
+[1]: bash &
+[2]: fg 1
+[3]: python3 &
+[4]: fg
+[5]: history
+[6]: ls | more
+[7]: exit
+[8]: history
+[9]: echo HelloWorld!
+[10]: history
+```
+Obsérvese que los dos primeros comandos ya no están, el resto de los que estaban, disminuyeron su índice en dos y entraron dos nuevos comandos al final `echo HelloWorld!` y `history`.
 
-En el shell con el comando `cd <dir>` se puede cambiar la dirección del shell.
 
-Si el comando `cd` no recibe ningún parámetro entonces cambia la dirección hacia **/home/USER**. Si recibe `<dir> = ..` cambia la dirección hacia el padre del actual directorio.
+### `cd <dir>`: 
 
-Alguno de los problemas es que no se puede pasar como parámetro una dirección que contenga espacios, por ejemplo: **/home/USER/proyecto shell**
+Nuestro shell permite que se ingrese el comando `cd`:
+    * Si `cd` no viene acompañado de número parámetro entonces la dirección del shell se cambia a **/home/user** y la misma se guarda en una estructura interna del shell llamada **info_shell**, para poder ser usada posteriormente en otros procesos.
+    -- Si `cd` viene acompañado de una dirección válida, o sea que sea una dirección correcta y sea interna a la dirección actual, entonces la dirección del shell cambia a dicha dirección y como en el caso anterior también se almacena en la estructura interna **info_shell**.
+    -- Si `cd` viene acompañado de un parámetro y este empieza con `~` se concatenan **/home/user** y el resto del parámetro sin contar el caracter `~` y de ser válida esta cadena como dirección, el shell cambia a esta dirección y se guarda en la estructura **info_shell**.
+    -- Si `cd` viene acompañado de una dirección inválida entonces el shell imprime **ERROR `cd: <dir>`: No such file or directory**.
 
-En el shell con el comando `jobs` se puede obtener todos los comandos que se estan ejecutando en el background. Imprime por consola todos los procesos con el formato:
- `[<index>] <pid> <command> <state>`
+### `fg`:
 
-En el shell con el comando `fg <index>` se puede traer un proceso de background hacia el foreground. Si no recibe ningún `<index>` el comando fg trae a foreground el último proceso que se envió a background. 
+Nuestro shell permite implementar el comando `fg`:
+--Si se ingresa `fg` sin parámetros entonces se trae al foreground el último job enviado al background. En caso de que no haya ningún job en background se imprime **Error: No such job in background**.
+--Si se ingresa `fg` con un índice se chequea que es un índice válido, o sea que es un índice entre 1 y la cantidad de jobs que estám en la lista jobs en background. En caso del índice ser incorrecto, o sea que no están en el rango de entre 1 y la cantidad de jobs en background se imprime **ERROR `fg <index>`: No such job**.
+--Para ambos casos luego de ya saber que job se va a ejecutar en foreground, a este job se le envían la señal "SIGCONT" para que el job se ejecute. Entonces se remueve el job de la lista jobs en background y se espera que el job termine de ejecutarse, devolviendole el control al shell.
 
-## Integrantes
-Carlos Toledo Silva C-211
 
-Ariel Alfonso Triana Pérez C-211
+#### Ejemplos:
 
-## Para contribuir
+```
+$ python3 &
+$ bash &
+$ fg 1
+>>>
+```
 
-Abra un terminal, y haga `git clone "https://github.com/ArielTriana/ttsh"` en el directorio. Realice su contribución en una nueva rama `git branch <new-branch>`. Y luego `merge` en la rama `main`.
+Primero se manda a `python3` al background, luego se manda a `bash` al background y se trae a `python3` al foreground ya que está en el índice 1.
+
+```
+$ python3 &
+$ bash &
+$ fg
+$ bash $
+```
+Primero se manda a python3 al background, luego se manda a bash al background y se trae a bash al foreground ya que fue el último job en mandarse a background.
+
+
+### exit:
+
+Cierra el shell y salva el historial en el archivo *history.dat*. El archivo history.dat es donde se guardan los comandos que se han ido introduciendo.
+
+## Contribuciones 
+	1. Ariel Alfonso Triana Pérez (ArielTriana)
+	2. Carlos Toledo Silva (CTS-crypto)
