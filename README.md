@@ -4,9 +4,9 @@
 * **basic:** funcionalidades básicas 
 * **multi-pipe:** múltiples tuberías 
 * **background:** procesos ejecutándose en segundo plano 
-* **spaces:** comandos con cualquier cantidad de espacios (0.5 puntos)
-* **history:** historial de comandos (0.5 puntos)
-* **help:** descripción de las funcionalidades del shell (1 punto)
+* **spaces:** comandos con cualquier cantidad de espacios 
+* **history:** historial de comandos 
+* **help:** descripción de las funcionalidades del shell 
 
 
 ## Build-in:
@@ -111,17 +111,17 @@ Obsérvese que los dos primeros comandos ya no están, el resto de los que estab
 ### `cd <dir>`: 
 
 Nuestro shell permite que se ingrese el comando `cd`:
-    * Si `cd` no viene acompañado de número parámetro entonces la dirección del shell se cambia a **/home/user** y la misma se guarda en una estructura interna del shell llamada **info_shell**, para poder ser usada posteriormente en otros procesos.
-    -- Si `cd` viene acompañado de una dirección válida, o sea que sea una dirección correcta y sea interna a la dirección actual, entonces la dirección del shell cambia a dicha dirección y como en el caso anterior también se almacena en la estructura interna **info_shell**.
-    -- Si `cd` viene acompañado de un parámetro y este empieza con `~` se concatenan **/home/user** y el resto del parámetro sin contar el caracter `~` y de ser válida esta cadena como dirección, el shell cambia a esta dirección y se guarda en la estructura **info_shell**.
-    -- Si `cd` viene acompañado de una dirección inválida entonces el shell imprime **ERROR `cd: <dir>`: No such file or directory**.
+* Si `cd` no viene acompañado de número parámetro entonces la dirección del shell se cambia a **/home/user** y la misma se guarda en una estructura interna del shell llamada **info_shell**, para poder ser usada posteriormente en otros procesos.
+* Si `cd` viene acompañado de una dirección válida, o sea que sea una dirección correcta y sea interna a la dirección actual, entonces la dirección del shell cambia a dicha dirección y como en el caso anterior también se almacena en la estructura interna **info_shell**.
+* Si `cd` viene acompañado de un parámetro y este empieza con `~` se concatenan **/home/user** y el resto del parámetro sin contar el caracter `~` y de ser válida esta cadena como dirección, el shell cambia a esta dirección y se guarda en la estructura **info_shell**.
+* Si `cd` viene acompañado de una dirección inválida entonces el shell imprime **ERROR `cd: <dir>`: No such file or directory**.
 
 ### `fg`:
 
 Nuestro shell permite implementar el comando `fg`:
---Si se ingresa `fg` sin parámetros entonces se trae al foreground el último job enviado al background. En caso de que no haya ningún job en background se imprime **Error: No such job in background**.
---Si se ingresa `fg` con un índice se chequea que es un índice válido, o sea que es un índice entre 1 y la cantidad de jobs que estám en la lista jobs en background. En caso del índice ser incorrecto, o sea que no están en el rango de entre 1 y la cantidad de jobs en background se imprime **ERROR `fg <index>`: No such job**.
---Para ambos casos luego de ya saber que job se va a ejecutar en foreground, a este job se le envían la señal "SIGCONT" para que el job se ejecute. Entonces se remueve el job de la lista jobs en background y se espera que el job termine de ejecutarse, devolviendole el control al shell.
+* Si se ingresa `fg` sin parámetros entonces se trae al foreground el último job enviado al background. En caso de que no haya ningún job en background se imprime **Error: No such job in background**.
+* Si se ingresa `fg` con un índice se chequea que es un índice válido, o sea que es un índice entre 1 y la cantidad de jobs que estám en la lista jobs en background. En caso del índice ser incorrecto, o sea que no están en el rango de entre 1 y la cantidad de jobs en background se imprime **ERROR `fg <index>`: No such job**.
+* Para ambos casos luego de ya saber que job se va a ejecutar en foreground, a este job se le envían la señal "SIGCONT" para que el job se ejecute. Entonces se remueve el job de la lista jobs en background y se espera que el job termine de ejecutarse, devolviendole el control al shell.
 
 
 #### Ejemplos:
